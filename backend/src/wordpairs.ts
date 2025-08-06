@@ -1,0 +1,17 @@
+export const WORD_PAIRS: [string, string][] = [
+  ["Apple", "Orange"],
+  ["Cat", "Dog"],
+  ["Ocean", "Lake"],
+  ["Guitar", "Piano"],
+  ["Summer", "Winter"],
+  ["Coffee", "Tea"],
+  ["Mountain", "Hill"],
+  ["Book", "Magazine"],
+  ["Thunder", "Lightning"],
+  ["Butterfly", "Bee"],
+  ["Pizza", "Burger"],
+  ["Train", "Bus"],
+  ["Rose", "Tulip"],
+  ["Moon", "Sun"],
+  ["Basketball", "Football"],
+];
