@@ -1,82 +1,107 @@
+import { Roles } from "@imposter/shared";
+import type { RolesTypes } from "@imposter/shared";
+import { useLocalStorage } from "@uidotdev/usehooks";
+
+import { useSocket } from "../context";
+import { useNavigate } from "react-router";
 import { useState } from "react";
-import { useSocket } from "../hooks/useSocket";
+
+const LabelsToRoles = [
+  { label: "Host", role: Roles.HOST },
+  { label: "Player", role: Roles.PLAYER },
+  { label: "Spectator", role: Roles.SPECTATOR },
+];
 
 export function Home() {
-  const [playerName, setPlayerName] = useState("");
-  const [roomIdInput, setRoomIdInput] = useState("");
-  const { error } = useSocket();
+  const [name, setName] = useLocalStorage("$$name$$", "");
+  const [roomName, setRoomName] = useLocalStorage("$$roomId$$", "");
+  const [selectedRole, setSelectedRole] = useLocalStorage<RolesTypes>("$$selectedRole$$", Roles.PLAYER);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleCreateRoom = () => {
-    // createRoom(playerName.trim());
-  };
+  const socketSend = useSocket({
+    onOpen: () => console.log("Socket connected"),
+    onClose: () => console.log("Socket disconnected"),
+    onError: (error) => console.error("Socket error:", error),
+    JoinRoomResponseEvent: (payload) => {
+      setIsLoading(false);
+      navigate(`/room/${payload.roomId}`);
+    },
+  });
 
-  const handleJoinRoom = () => {
-    if (playerName.trim() && roomIdInput.trim()) {
-      // joinRoom(roomIdInput.trim().toUpperCase(), playerName.trim());
-    }
+  const handleContinue = () => {
+    if (!selectedRole) return alert("Please select a role.");
+    if (name.trim() === "") return alert("Please enter your name.");
+    if (roomName.trim() === "") return alert("Please enter a room name");
+
+    setIsLoading(true);
+    socketSend({
+      type: "JoinRoomRequestEvent",
+      payload: { playerId: name, roomName, role: selectedRole },
+    });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-indigo-900 mb-2">Word Impostor</h1>
-          <p className="text-gray-600">Real-time multiplayer word game</p>
-        </div>
+    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
+      <h1 className="text-3xl font-bold mb-6">Join Word Imposter</h1>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
-            {error}
-            <button onClick={clearError} className="float-right text-red-400 hover:text-red-600">
-              ×
-            </button>
-          </div>
-        )}
+      <input
+        type="text"
+        placeholder="Enter your name"
+        className="border p-2 rounded w-64 mb-4"
+        value={name}
+        autoFocus
+        onChange={(e) => setName(e.target.value)}
+        disabled={isLoading}
+      />
 
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value.trim())}
-            placeholder="Enter your name"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            maxLength={20}
+      <input
+        type="text"
+        placeholder="Enter the room name"
+        className="border p-2 rounded w-64 mb-4"
+        value={roomName}
+        onChange={(e) => setRoomName(e.target.value)}
+        disabled={isLoading}
+      />
+
+      <div className="flex gap-4 mb-6">
+        {LabelsToRoles.map(({ label, role }) => (
+          <CheckboxButton
+            key={role}
+            label={label}
+            selected={selectedRole === role}
+            onClick={() => setSelectedRole(role)}
+            disabled={isLoading}
           />
-          <button
-            onClick={handleCreateRoom}
-            disabled={playerName.length === 0}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-          >
-            Create New Room
-          </button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
-            </div>
-          </div>
-
-          <input
-            type="text"
-            value={roomIdInput}
-            onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())}
-            placeholder="Enter room code"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            maxLength={6}
-          />
-
-          <button
-            onClick={handleJoinRoom}
-            disabled={!playerName.trim() || !roomIdInput.trim()}
-            className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-          >
-            Join Room
-          </button>
-        </div>
+        ))}
       </div>
+
+      <button
+        className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
+        onClick={handleContinue}
+        disabled={isLoading}
+      >
+        Continue
+      </button>
     </div>
+  );
+}
+
+type CheckboxButtonProps = {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  disabled: boolean;
+};
+
+function CheckboxButton({ label, selected, onClick, disabled }: CheckboxButtonProps) {
+  return (
+    <button
+      className={`px-4 py-2 rounded border ${selected ? "bg-blue-500 text-white" : "bg-white"}`}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }

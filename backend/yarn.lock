@@ -2,6 +2,9 @@
 # yarn lockfile v1
 
 
+"@imposter/shared@../shared":
+  version "0.0.1"
+
 "@types/bun@latest":
   version "1.2.19"
   resolved "https://registry.yarnpkg.com/@types/bun/-/bun-1.2.19.tgz#3fb37a59e56d5dd2276653db5b6a022989b6e465"

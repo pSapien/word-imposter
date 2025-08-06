@@ -1,5 +1,5 @@
 {
-  "name": "word-imposter-backend",
+  "name": "@imposter/backend",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
@@ -14,6 +14,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "uuidv4": "^6.2.13"
+    "uuidv4": "^6.2.13",
+    "@imposter/shared": "../shared"
   }
 }
