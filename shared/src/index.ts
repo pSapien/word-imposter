@@ -1,2 +1,2 @@
 export * from "./events";
-export * from "./roles.ts";
+export * from "./roles";

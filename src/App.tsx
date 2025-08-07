@@ -10,7 +10,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/room/:roomId" element={<Room />} />
+          <Route path="/room/:roomName" element={<Room />} />
         </Routes>
       </BrowserRouter>
     </SocketProvider>

@@ -2,32 +2,64 @@ import type { RolesTypes } from "./roles";
 
 export interface Player {
   name: string;
-  role: RolesTypes;
+}
+
+export interface Spectator {
+  name: string;
 }
 
 interface JoinRoomRequestEvent {
   type: "JoinRoomRequestEvent";
-  payload: { playerId: string; roomName: string; role: RolesTypes };
+  payload: {
+    playerName: string;
+    roomName: string;
+    role: RolesTypes;
+  };
 }
 
 interface JoinRoomResponseEvent {
   type: "JoinRoomResponseEvent";
-  payload: { roomId: string };
+  payload: {
+    roomName: string;
+  };
+}
+
+interface StartGameRequestEvent {
+  type: "StartGameRequestEvent";
+  payload: {
+    roomName: string;
+    playerName: string;
+  };
 }
 
 interface GetRoomInfoRequestEvent {
   type: "GetRoomInfoRequestEvent";
-  payload: { roomId: string };
+  payload: {
+    roomName: string;
+    playerName: string;
+  };
+}
+
+interface GameStartedResponseEvent {
+  type: "GameStartedResponseEvent";
+  payload: {
+    roomName: string;
+  };
 }
 
 interface GetRoomInfoResponseEvent {
   type: "GetRoomInfoResponseEvent";
   payload: {
-    roomId: string;
+    roomName: string;
+    hostName: string;
     players: Player[];
-    word: string;
+    game: {
+      imposterName: string;
+      imposterWord: string;
+      normalWord: string;
+    } | null;
   };
 }
 
-export type ClientRequestEvents = JoinRoomRequestEvent | GetRoomInfoRequestEvent;
-export type ServerResponseEvents = JoinRoomResponseEvent | GetRoomInfoResponseEvent;
+export type ClientRequestEvents = JoinRoomRequestEvent | StartGameRequestEvent | GetRoomInfoRequestEvent;
+export type ServerResponseEvents = JoinRoomResponseEvent | GameStartedResponseEvent | GetRoomInfoResponseEvent;

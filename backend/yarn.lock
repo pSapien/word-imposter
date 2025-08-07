@@ -2,8 +2,9 @@
 # yarn lockfile v1
 
 
-"@imposter/shared@../shared":
-  version "0.0.1"
+"@imposter/shared@link:../shared":
+  version "0.0.0"
+  uid ""
 
 "@types/bun@latest":
   version "1.2.19"

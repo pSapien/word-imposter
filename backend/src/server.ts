@@ -1,4 +1,4 @@
-import { eventHandlers } from "./server.events.ts";
+import { eventHandlers } from "./server.events";
 import type { ClientRequestEvents } from "@imposter/shared";
 
 const server = Bun.serve({

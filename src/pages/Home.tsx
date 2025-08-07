@@ -5,6 +5,7 @@ import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { useNavigate } from "react-router";
 import { useState } from "react";
+import { Constants } from "../constants.ts";
 
 const LabelsToRoles = [
   { label: "Host", role: Roles.HOST },
@@ -13,9 +14,9 @@ const LabelsToRoles = [
 ];
 
 export function Home() {
-  const [name, setName] = useLocalStorage("$$name$$", "");
-  const [roomName, setRoomName] = useLocalStorage("$$roomId$$", "");
-  const [selectedRole, setSelectedRole] = useLocalStorage<RolesTypes>("$$selectedRole$$", Roles.PLAYER);
+  const [name, setName] = useLocalStorage(Constants.StorageKeys.Name, "");
+  const [roomName, setRoomName] = useLocalStorage(Constants.StorageKeys.RoomId, "");
+  const [selectedRole, setSelectedRole] = useLocalStorage<RolesTypes>(Constants.StorageKeys.SelectedRole, Roles.PLAYER);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -25,7 +26,7 @@ export function Home() {
     onError: (error) => console.error("Socket error:", error),
     JoinRoomResponseEvent: (payload) => {
       setIsLoading(false);
-      navigate(`/room/${payload.roomId}`);
+      navigate(`/room/${payload.roomName}`);
     },
   });
 
@@ -37,7 +38,7 @@ export function Home() {
     setIsLoading(true);
     socketSend({
       type: "JoinRoomRequestEvent",
-      payload: { playerId: name, roomName, role: selectedRole },
+      payload: { playerName: name, roomName, role: selectedRole },
     });
   };
 

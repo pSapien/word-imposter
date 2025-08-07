@@ -61,6 +61,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   };
 
   const addHandlers = (handlers: SocketEventHandlers) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      handlers.onOpen?.();
+    }
+
     handlersRef.current.add(handlers);
   };
 
