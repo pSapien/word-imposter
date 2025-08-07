@@ -49,23 +49,25 @@ export function Home() {
       <input
         type="text"
         placeholder="Enter your name"
-        className="border p-2 rounded w-64 mb-4"
+        className="border border-gray-500 p-2 w-80 mb-4 rounded-md bg-white"
         value={name}
         autoFocus
         onChange={(e) => setName(e.target.value)}
         disabled={isLoading}
+        autoCapitalize="off"
       />
 
       <input
         type="text"
         placeholder="Enter the room name"
-        className="border p-2 rounded w-64 mb-4"
+        className="border border-gray-500 p-2 w-80 mb-4 rounded-md bg-white"
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
         disabled={isLoading}
+        autoCapitalize="off"
       />
 
-      <div className="flex gap-4 mb-6">
+      <div className="flex mb-6 mt-2 w-80 justify-between">
         {LabelsToRoles.map(({ label, role }) => (
           <CheckboxButton
             key={role}
@@ -78,7 +80,7 @@ export function Home() {
       </div>
 
       <button
-        className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
+        className="bg-green-600 w-80 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
         onClick={handleContinue}
         disabled={isLoading}
       >
@@ -98,7 +100,7 @@ type CheckboxButtonProps = {
 function CheckboxButton({ label, selected, onClick, disabled }: CheckboxButtonProps) {
   return (
     <button
-      className={`px-4 py-2 rounded border ${selected ? "bg-blue-500 text-white" : "bg-white"}`}
+      className={`px-4 py-1 rounded-full border ${selected ? "bg-blue-500 text-white" : "bg-white"}`}
       disabled={disabled}
       onClick={onClick}
     >
