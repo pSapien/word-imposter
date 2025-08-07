@@ -13,12 +13,14 @@ export function Room() {
   const [hostName, setHostName] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const isGameStarted = word.length > 0;
-
   const roomName = queryParams.roomName as string;
   const isHost = userName === hostName;
 
   const send = useSocket({
     onOpen: () => {
+      updateRoom();
+    },
+    PlayerKickedResponseEvent: () => {
       updateRoom();
     },
     JoinRoomResponseEvent: () => {
@@ -30,10 +32,7 @@ export function Room() {
     GetRoomInfoResponseEvent: (payload) => {
       setHostName(payload.hostName);
       if (payload.game?.normalWord) setWord(payload.game?.normalWord);
-      setPlayers((prev) => {
-        const newPlayers = payload.players.filter((p) => !prev.some((prevP) => prevP.name === p.name));
-        return newPlayers.length === 0 ? prev : prev.concat(newPlayers);
-      });
+      setPlayers(payload.players);
     },
   });
 
@@ -50,6 +49,16 @@ export function Room() {
     send({ type: "StartGameRequestEvent", payload: { playerName: userName as string, roomName } });
   }
 
+  function kickPlayer(player: Player) {
+    const confirmed = window.confirm("Are you sure you want to kick the player?");
+    if (!confirmed) return;
+
+    send({
+      type: "KickPlayerRequestEvent",
+      payload: { playerName: userName as string, roomName, playerNameToBeKicked: player.name },
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center">
       <div className="w-full max-w-md mb-4">
@@ -58,9 +67,20 @@ export function Room() {
 
       <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
         {players.map((player, index) => {
+          const shouldShowKick = isHost && player.name !== userName;
+
           return (
             <div key={index} className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2">
               <span className="text-base font-medium text-gray-800">{player.name}</span>
+              {shouldShowKick && (
+                <button
+                  onClick={() => kickPlayer(player)}
+                  className="text-red-500 hover:text-red-700 text-2xl px-2 py-1"
+                  title="Kick player"
+                >
+                  ⛔
+                </button>
+              )}
             </div>
           );
         })}

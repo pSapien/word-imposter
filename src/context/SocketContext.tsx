@@ -92,11 +92,12 @@ export function useSocket(handlers: SocketEventHandlers): (event: ClientRequestE
   }
 
   const { send, addHandlers, removeHandlers } = context;
+  const handlersRef = useRef(handlers);
 
   useEffect(() => {
-    addHandlers(handlers);
-    return () => removeHandlers(handlers);
-  }, [handlers]);
+    addHandlers(handlersRef.current);
+    return () => removeHandlers(handlersRef.current);
+  }, []);
 
   return send;
 }

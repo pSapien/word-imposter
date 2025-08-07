@@ -44,6 +44,32 @@ export const eventHandlers: EventHandlerMap = {
     });
   },
 
+  KickPlayerRequestEvent: (ws, payload) => {
+    const { playerName, playerNameToBeKicked, roomName } = payload;
+    const room = rooms.get(roomName);
+
+    if (!room) return console.warn(`Room ${roomName} not found`);
+
+    if (room.hostName !== playerName) return console.warn(`Player ${playerName} is not the host of room ${roomName}`);
+
+    if (playerNameToBeKicked === playerName) return console.warn("Host cannot kick themselves");
+
+    const playerIndex = room.players.findIndex((p) => p.name === playerNameToBeKicked);
+    const spectatorIndex = room.spectators.findIndex((s) => s.name === playerNameToBeKicked);
+
+    if (playerIndex !== -1) room.players.splice(playerIndex, 1);
+    if (spectatorIndex !== -1) room.spectators.splice(spectatorIndex, 1);
+
+    const kickedSocket = playerSockets.get(playerNameToBeKicked);
+    playerSockets.delete(playerNameToBeKicked);
+    socketToPlayer.delete(kickedSocket);
+
+    broadcastToRoom(room, {
+      type: "PlayerKickedResponseEvent",
+      payload: { playerName, roomName },
+    });
+  },
+
   StartGameRequestEvent: (ws, payload) => {
     const { roomName, playerName } = payload;
     const room = rooms.get(roomName);

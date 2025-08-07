@@ -69,9 +69,32 @@ interface GetRoomInfoResponseEvent {
   };
 }
 
+interface KickPlayerRequestEvent {
+  type: "KickPlayerRequestEvent";
+  payload: {
+    playerName: string;
+    roomName: string;
+    playerNameToBeKicked: string;
+  };
+}
+
+interface PlayerKickedResponseEvent {
+  type: "PlayerKickedResponseEvent";
+  payload: {
+    playerName: string;
+    roomName: string;
+  };
+}
+
 export type ClientRequestEvents =
   | JoinRoomRequestEvent
   | StartGameRequestEvent
   | GetRoomInfoRequestEvent
-  | StartNextRoundRequestEvent;
-export type ServerResponseEvents = JoinRoomResponseEvent | GameStartedResponseEvent | GetRoomInfoResponseEvent;
+  | StartNextRoundRequestEvent
+  | KickPlayerRequestEvent;
+
+export type ServerResponseEvents =
+  | JoinRoomResponseEvent
+  | GameStartedResponseEvent
+  | GetRoomInfoResponseEvent
+  | PlayerKickedResponseEvent;
