@@ -19,7 +19,13 @@ export function Room() {
 
   const send = useSocket({
     onOpen: () => {
-      send({ type: "GetRoomInfoRequestEvent", payload: { roomName: roomName, playerName: userName as string } });
+      updateRoom();
+    },
+    JoinRoomResponseEvent: () => {
+      updateRoom();
+    },
+    GameStartedResponseEvent: () => {
+      updateRoom();
     },
     GetRoomInfoResponseEvent: (payload) => {
       setHostName(payload.hostName);
@@ -31,10 +37,14 @@ export function Room() {
     },
   });
 
+  function updateRoom() {
+    send({ type: "GetRoomInfoRequestEvent", payload: { roomName: roomName, playerName: userName as string } });
+  }
+
   function start() {
-    /** dispatch next round */
     if (isGameStarted) {
-      return;
+      const confirmed = window.confirm("Are you sure you want to start next round?");
+      if (!confirmed) return;
     }
 
     send({ type: "StartGameRequestEvent", payload: { playerName: userName as string, roomName } });

@@ -1,80 +1,11 @@
-import type { ClientRequestEvents, ServerResponseEvents } from "@imposter/shared";
-
-type Player = {
-  name: string;
-};
-
-type Spectator = {
-  name: string;
-};
-
-type Game = {
-  imposterName: string;
-  round: string;
-  startedAt: number;
-  imposterWord: string;
-  normalWord: string;
-};
-
-type Room = {
-  roomName: string;
-  hostName: string;
-  players: Player[];
-  spectators: Spectator[];
-  games: Game[];
-};
-
-type EventHandlerMap = {
-  [K in ClientRequestEvents["type"]]?: (
-    ws: Bun.WebSocket,
-    payload: Extract<ClientRequestEvents, { type: K }>["payload"]
-  ) => void;
-};
+import { Roles, type ServerResponseEvents } from "@imposter/shared";
+import type { EventHandlerMap, Game, Player, Room } from "./server.type.js";
+import { WORD_PAIRS } from "./wordpairs.js";
 
 // --- In-Memory Stores ---
 const rooms = new Map<string, Room>();
 const playerSockets = new Map<string, Bun.WebSocket>();
 const socketToPlayer = new Map<Bun.WebSocket, string>();
-
-// --- Utility Functions ---
-function sendResponse(ws: Bun.WebSocket, response: ServerResponseEvents): void {
-  try {
-    ws.send(JSON.stringify(response));
-  } catch (error) {
-    console.error("Failed to send response:", error);
-  }
-}
-
-function getLastGame(games: Game[]): Game | null {
-  return games.length > 0 ? games[games.length - 1] : null;
-}
-
-function isPlayerInRoom(room: Room, playerName: string): boolean {
-  return room.players.some((p) => p.name === playerName) || room.spectators.some((s) => s.name === playerName);
-}
-
-function broadcastToRoom(room: Room, response: ServerResponseEvents): void {
-  room.players.forEach((player) => {
-    const socket = playerSockets.get(player.name);
-    if (socket) {
-      sendResponse(socket, response);
-    }
-  });
-
-  // Broadcast to all spectators
-  room.spectators.forEach((spectator) => {
-    const socket = playerSockets.get(spectator.name);
-    if (socket) {
-      sendResponse(socket, response);
-    }
-  });
-}
-
-function selectRandomImposter(players: Player[]): string | null {
-  if (players.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * players.length);
-  return players[randomIndex].name;
-}
 
 export const eventHandlers: EventHandlerMap = {
   JoinRoomRequestEvent: (ws, payload) => {
@@ -88,7 +19,6 @@ export const eventHandlers: EventHandlerMap = {
     let room = rooms.get(roomName);
 
     if (!room) {
-      // Create new room
       const newRoom: Room = {
         roomName,
         hostName: playerName,
@@ -99,21 +29,16 @@ export const eventHandlers: EventHandlerMap = {
       rooms.set(roomName, newRoom);
       room = newRoom;
     } else {
-      // Add player to existing room if not already present
       if (!isPlayerInRoom(room, playerName)) {
-        if (role === "spectator") {
-          room.spectators.push({ name: playerName });
-        } else if (role === "player") {
-          room.players.push({ name: playerName });
-        }
+        if (role === Roles.SPECTATOR) room.spectators.push({ name: playerName });
+        if (role === Roles.PLAYER) room.players.push({ name: playerName });
       }
     }
 
-    // Update socket mappings
     playerSockets.set(playerName, ws);
     socketToPlayer.set(ws, playerName);
 
-    sendResponse(ws, {
+    broadcastToRoom(room, {
       type: "JoinRoomResponseEvent",
       payload: { roomName },
     });
@@ -123,33 +48,13 @@ export const eventHandlers: EventHandlerMap = {
     const { roomName, playerName } = payload;
     const room = rooms.get(roomName);
 
-    // Validation checks
-    if (!room) {
-      console.warn(`Room ${roomName} not found`);
-      return;
-    }
+    if (!room) return console.warn(`Room ${roomName} not found`);
+    if (room.hostName !== playerName) return console.warn(`Player ${playerName} is not the host of room ${roomName}`);
 
-    if (room.hostName !== playerName) {
-      console.warn(`Player ${playerName} is not the host of room ${roomName}`);
-      return;
-    }
-
-    if (room.players.length < 2) {
-      console.warn("Need at least 2 players to start a game");
-      return;
-    }
-
-    // Select random imposter
     const imposterName = selectRandomImposter(room.players);
-    if (!imposterName) {
-      console.error("Failed to select imposter");
-      return;
-    }
+    if (!imposterName) return console.error("Failed to select imposter");
 
-    // TODO: These should come from a word list or configuration
-    const normalWord = "agent";
-    const imposterWord = "spy"; // Different word for imposter
-
+    const { imposterWord, normalWord } = getRandomWordPair();
     const newGame: Game = {
       imposterName,
       round: (room.games.length + 1).toString(),
@@ -160,7 +65,6 @@ export const eventHandlers: EventHandlerMap = {
 
     room.games.push(newGame);
 
-    // Broadcast game start to all room members
     broadcastToRoom(room, {
       type: "GameStartedResponseEvent",
       payload: { roomName },
@@ -210,8 +114,8 @@ export const eventHandlers: EventHandlerMap = {
       // Imposter sees their word but not who the imposter is
       gameInfo = {
         imposterName: "",
-        imposterWord: lastGame.imposterWord,
-        normalWord: "", // Imposter doesn't see the normal word
+        imposterWord: "",
+        normalWord: lastGame.imposterWord,
       };
     } else {
       // Regular players see the normal word
@@ -232,7 +136,44 @@ export const eventHandlers: EventHandlerMap = {
   },
 };
 
-// --- Cleanup Functions ---
+// --- Utility Functions ---
+function sendResponse(ws: Bun.WebSocket, response: ServerResponseEvents): void {
+  try {
+    ws.send(JSON.stringify(response));
+  } catch (error) {
+    console.error("Failed to send response:", error);
+  }
+}
+
+function getLastGame(games: Game[]): Game | null {
+  return games.length > 0 ? games[games.length - 1] : null;
+}
+
+function isPlayerInRoom(room: Room, playerName: string): boolean {
+  return room.players.some((p) => p.name === playerName) || room.spectators.some((s) => s.name === playerName);
+}
+
+function broadcastToRoom(room: Room, response: ServerResponseEvents): void {
+  room.players.forEach((player) => {
+    const socket = playerSockets.get(player.name);
+    if (socket) {
+      console.log("Broadcasting to::", player.name, response.type);
+      sendResponse(socket, response);
+    }
+  });
+
+  room.spectators.forEach((spectator) => {
+    const socket = playerSockets.get(spectator.name);
+    if (socket) sendResponse(socket, response);
+  });
+}
+
+function selectRandomImposter(players: Player[]): string | null {
+  if (players.length === 0) return null;
+  const randomIndex = Math.floor(Math.random() * players.length);
+  return players[randomIndex].name;
+}
+
 export function handlePlayerDisconnect(ws: Bun.WebSocket): void {
   const playerName = socketToPlayer.get(ws);
   if (!playerName) return;
@@ -269,4 +210,15 @@ export function handlePlayerDisconnect(ws: Bun.WebSocket): void {
       }
     }
   }
+}
+
+export function getRandomWordPair(): { normalWord: string; imposterWord: string } {
+  const randomPairIndex = Math.floor(Math.random() * WORD_PAIRS.length);
+  const selectedPair = WORD_PAIRS[randomPairIndex];
+  const randomAssignment = Math.floor(Math.random() * 2);
+
+  return {
+    normalWord: selectedPair[randomAssignment],
+    imposterWord: selectedPair[1 - randomAssignment],
+  };
 }

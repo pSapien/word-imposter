@@ -21,7 +21,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const handlersRef = useRef<Set<SocketEventHandlers>>(new Set());
 
   const socket = useMemo(() => {
-    const instance = new ReconnectingWebSocket("ws://localhost:3000");
+    const instance = new ReconnectingWebSocket("ws://10.10.100.216:3000", "", {
+      debug: true,
+    });
 
     instance.addEventListener("open", () => {
       handlersRef.current.forEach((h) => h.onOpen?.());

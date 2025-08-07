@@ -1,4 +1,4 @@
-import { eventHandlers } from "./server.events";
+import { eventHandlers, handlePlayerDisconnect } from "./server.events";
 import type { ClientRequestEvents } from "@imposter/shared";
 
 const server = Bun.serve({
@@ -11,6 +11,7 @@ const server = Bun.serve({
     open(ws) {
       console.log("Connection opened");
     },
+
     async message(ws, data) {
       let message: ClientRequestEvents;
       try {
@@ -22,8 +23,8 @@ const server = Bun.serve({
 
       const { type, payload } = message;
       const handler = eventHandlers[type];
-      console.log("RX:", type, payload);
       if (typeof handler === "function") {
+        // @ts-ignore
         handler(ws, payload);
       } else {
         console.warn(`No handler found for event type: ${type}`);
@@ -31,7 +32,9 @@ const server = Bun.serve({
       }
     },
     close(ws) {
-      console.log("Client disconnected");
+      console.log("Player disconnected");
+      // @ts-ignore
+      // handlePlayerDisconnect(ws as Bun.WebSocket);
     },
   },
 });

@@ -32,6 +32,14 @@ interface StartGameRequestEvent {
   };
 }
 
+interface StartNextRoundRequestEvent {
+  type: "StartNextRoundRequestEvent";
+  payload: {
+    roomName: string;
+    playerName: string;
+  };
+}
+
 interface GetRoomInfoRequestEvent {
   type: "GetRoomInfoRequestEvent";
   payload: {
@@ -61,5 +69,9 @@ interface GetRoomInfoResponseEvent {
   };
 }
 
-export type ClientRequestEvents = JoinRoomRequestEvent | StartGameRequestEvent | GetRoomInfoRequestEvent;
+export type ClientRequestEvents =
+  | JoinRoomRequestEvent
+  | StartGameRequestEvent
+  | GetRoomInfoRequestEvent
+  | StartNextRoundRequestEvent;
 export type ServerResponseEvents = JoinRoomResponseEvent | GameStartedResponseEvent | GetRoomInfoResponseEvent;
