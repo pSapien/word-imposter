@@ -69,7 +69,7 @@ export function Room() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center">
       <div className="w-full max-w-md mb-4">
-        <WordBlock word={word} />
+        <WordBlock word={word} shouldHighlight={!!imposterWord} />
       </div>
 
       <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
@@ -81,7 +81,9 @@ export function Room() {
               <span className="text-base font-medium text-gray-800">{player.name}</span>
 
               {imposterName === player.name && imposterWord && (
-                <span className="text-base font-medium text-gray-800">{imposterWord}</span>
+                <span className="text-base font-medium text-red-500 bg-red-200 px-2 border border-red-500 rounded-md">
+                  {imposterWord}
+                </span>
               )}
 
               {shouldShowKick && (
