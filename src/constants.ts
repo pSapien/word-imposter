@@ -4,4 +4,5 @@ export const Constants = {
     RoomId: "$$roomId$$",
     SelectedRole: "$$selectedRole$$",
   },
+  Endpoint: "https://cb27a6dd8059.ngrok-free.app",
 };

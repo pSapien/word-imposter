@@ -1,6 +1,7 @@
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { ClientRequestEvents, ServerResponseEvents } from "@imposter/shared";
+import { Constants } from "../constants.ts";
 
 type SocketEventHandlers = {
   [K in ServerResponseEvents["type"]]?: (payload: Extract<ServerResponseEvents, { type: K }>["payload"]) => void;
@@ -21,7 +22,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const handlersRef = useRef<Set<SocketEventHandlers>>(new Set());
 
   const socket = useMemo(() => {
-    const instance = new ReconnectingWebSocket("ws://10.10.100.216:3000", "", {
+    const instance = new ReconnectingWebSocket(Constants.Endpoint, "", {
       debug: true,
     });
 
@@ -44,6 +45,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(event.data) as ServerResponseEvents;
         handlersRef.current.forEach((h) => {
           const handler = h[parsed.type];
+          // @ts-ignore: to be checked later
           if (handler) handler(parsed.payload);
         });
       } catch (err) {

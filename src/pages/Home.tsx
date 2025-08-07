@@ -1,5 +1,5 @@
-import { Roles } from "@imposter/shared";
-import type { RolesTypes } from "@imposter/shared";
+import { Roles } from "../../shared";
+import type { RolesTypes } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 
 import { useSocket } from "../context";

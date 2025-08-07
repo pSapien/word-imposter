@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router";
-import type { Player } from "@imposter/shared";
+import type { Player } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
@@ -12,6 +12,9 @@ export function Room() {
   const [userName] = useLocalStorage(Constants.StorageKeys.Name);
   const [hostName, setHostName] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [imposterWord, setImposterWord] = useState("");
+  const [imposterName, setImposterName] = useState("");
+
   const isGameStarted = word.length > 0;
   const roomName = queryParams.roomName as string;
   const isHost = userName === hostName;
@@ -31,7 +34,11 @@ export function Room() {
     },
     GetRoomInfoResponseEvent: (payload) => {
       setHostName(payload.hostName);
+
       if (payload.game?.normalWord) setWord(payload.game?.normalWord);
+      if (payload.game?.imposterWord) setImposterWord(payload.game.imposterWord);
+      if (payload.game?.imposterName) setImposterName(payload.game?.imposterName);
+
       setPlayers(payload.players);
     },
   });
@@ -72,6 +79,11 @@ export function Room() {
           return (
             <div key={index} className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2">
               <span className="text-base font-medium text-gray-800">{player.name}</span>
+
+              {imposterName === player.name && imposterWord && (
+                <span className="text-base font-medium text-gray-800">{imposterWord}</span>
+              )}
+
               {shouldShowKick && (
                 <button
                   onClick={() => kickPlayer(player)}
