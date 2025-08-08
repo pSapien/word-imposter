@@ -11,6 +11,9 @@ const server = Bun.serve({
     open(ws) {
       console.log("Connection opened");
     },
+    ping(ws, data) {
+      ws.pong(data);
+    },
 
     async message(ws, data) {
       let message: ClientRequestEvents;
