@@ -187,7 +187,7 @@ function broadcastToRoom(room: Room, response: ServerResponseEvents): void {
   room.players.forEach((player) => {
     const socket = playerSockets.get(player.name);
     if (socket) {
-      console.log("Broadcasting to::", player.name, response.type);
+      console.log("Broadcasting to::", socket.readyState, player.name, response.type);
       sendResponse(socket, response);
     }
   });
