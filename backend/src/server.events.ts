@@ -109,6 +109,7 @@ export const eventHandlers: EventHandlerMap = {
     const baseRoomInfo = {
       hostName: room.hostName,
       players: room.players,
+      spectators: room.spectators,
       roomName: room.roomName,
     };
 

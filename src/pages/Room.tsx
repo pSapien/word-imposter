@@ -12,6 +12,7 @@ export function Room() {
   const [userName] = useLocalStorage(Constants.StorageKeys.Name);
   const [hostName, setHostName] = useState<string | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [spectators, setSpectators] = useState<Player[]>([]);
   const [imposterWord, setImposterWord] = useState("");
   const [imposterName, setImposterName] = useState("");
 
@@ -36,6 +37,7 @@ export function Room() {
       setHostName(payload.hostName);
 
       if (payload.game?.normalWord) setWord(payload.game?.normalWord);
+      if (payload.spectators) setSpectators(payload.spectators);
       if (payload.game?.imposterWord) setImposterWord(payload.game.imposterWord);
       if (payload.game?.imposterName) setImposterName(payload.game?.imposterName);
 
@@ -100,6 +102,17 @@ export function Room() {
         })}
       </div>
 
+      <div className="h-8" />
+
+      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
+        {spectators.map((player, index) => {
+          return (
+            <div key={index} className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2">
+              <span className="text-base font-medium text-gray-800">{player.name}</span>
+            </div>
+          );
+        })}
+      </div>
       <div className="w-full max-w-md text-center mt-auto pt-6">
         {isHost && (
           <div className="w-full max-w-md mt-6">
