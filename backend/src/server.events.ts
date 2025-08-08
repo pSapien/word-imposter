@@ -8,6 +8,9 @@ const playerSockets = new Map<string, Bun.WebSocket>();
 const socketToPlayer = new Map<Bun.WebSocket, string>();
 
 export const eventHandlers: EventHandlerMap = {
+  ping: (ws) => {
+    sendResponse(ws, { type: "pong", payload: {} });
+  },
   JoinRoomRequestEvent: (ws, payload) => {
     const { playerName, role, roomName } = payload;
 

@@ -87,15 +87,27 @@ interface PlayerKickedResponseEvent {
   };
 }
 
+interface PingRequestEvent {
+  type: "ping";
+  payload: {};
+}
+
+interface PongResponseEvent {
+  type: "pong";
+  payload: {};
+}
+
 export type ClientRequestEvents =
   | JoinRoomRequestEvent
   | StartGameRequestEvent
   | GetRoomInfoRequestEvent
   | StartNextRoundRequestEvent
-  | KickPlayerRequestEvent;
+  | KickPlayerRequestEvent
+  | PingRequestEvent;
 
 export type ServerResponseEvents =
   | JoinRoomResponseEvent
   | GameStartedResponseEvent
   | GetRoomInfoResponseEvent
-  | PlayerKickedResponseEvent;
+  | PlayerKickedResponseEvent
+  | PongResponseEvent;
