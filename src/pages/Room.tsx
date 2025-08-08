@@ -75,31 +75,50 @@ export function Room() {
       </div>
 
       <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
-        {players.map((player, index) => {
-          const shouldShowKick = isHost && player.name !== userName;
+        {players
+          .slice()
+          .sort((a, b) => {
+            /** ensure the host is only first */
+            if (a.name === hostName) return -1;
+            if (b.name === hostName) return 1;
+            return 0;
+          })
+          .map((player, index) => {
+            const shouldShowKick = isHost && player.name !== userName;
+            const isPlayerHost = player.name === hostName;
 
-          return (
-            <div key={index} className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2">
-              <span className="text-base font-medium text-gray-800">{player.name}</span>
-
-              {imposterName === player.name && imposterWord && (
-                <span className="text-base font-medium text-red-500 bg-red-200 px-2 border border-red-500 rounded-md">
-                  {imposterWord}
+            return (
+              <div
+                key={index}
+                className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2"
+              >
+                <span className="text-base font-medium text-gray-800">
+                  {player.name}
+                  {isPlayerHost && (
+                    <span className="ml-2 text-xs font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full">
+                      H
+                    </span>
+                  )}
                 </span>
-              )}
 
-              {shouldShowKick && (
-                <button
-                  onClick={() => kickPlayer(player)}
-                  className="text-red-500 hover:text-red-700 text-2xl px-2 py-1"
-                  title="Kick player"
-                >
-                  ⛔
-                </button>
-              )}
-            </div>
-          );
-        })}
+                {imposterName === player.name && imposterWord && (
+                  <span className="text-base font-medium text-red-500 bg-red-200 px-2 border border-red-500 rounded-md">
+                    {imposterWord}
+                  </span>
+                )}
+
+                {shouldShowKick && (
+                  <button
+                    onClick={() => kickPlayer(player)}
+                    className="text-red-500 hover:text-red-700 text-2xl px-2 py-1"
+                    title="Kick player"
+                  >
+                    ⛔
+                  </button>
+                )}
+              </div>
+            );
+          })}
       </div>
 
       <div className="h-8" />
