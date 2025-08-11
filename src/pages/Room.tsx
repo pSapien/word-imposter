@@ -194,11 +194,21 @@ export function Room() {
               Spectators<span className="text-sm font-normal text-gray-500"> ({spectators.length})</span>
             </h3>
             <div className="bg-white shadow-md rounded-lg divide-y divide-gray-200">
-              {spectators.map((player, index) => (
-                <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
-                  <span className="text-base font-medium text-gray-800">{player.name}</span>
-                </div>
-              ))}
+              {spectators.map((player, index) => {
+                const isUserName = player.name === userName;
+                return (
+                  <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
+                    <span className="text-base font-medium text-gray-800">
+                      {player.name}
+                      {isUserName && (
+                        <span className="ml-2 text-xs font-semibold text-black border-black border-2 px-2 py-0.5 rounded-full">
+                          You
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </main>
