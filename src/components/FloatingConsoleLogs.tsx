@@ -22,7 +22,7 @@ export function FloatingConsoleLogs() {
 
   useEffect(() => {
     if (isOpen && logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+      logsEndRef.current.scrollIntoView({ behavior: "auto" });
     }
   }, [logs, isOpen]);
 
