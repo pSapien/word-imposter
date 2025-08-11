@@ -29,6 +29,16 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function startPinging(instance: ReconnectingWebSocket) {
+    cleanupPings();
+
+    pingIntervalRef.current = setInterval(() => {
+      if (instance.readyState === WebSocket.OPEN) {
+        instance.send(JSON.stringify({ type: "ping" }));
+      }
+    }, Constants.PingInterval);
+  }
+
   const socket = useMemo(() => {
     const instance = new ReconnectingWebSocket(Constants.Endpoint, "", {
       debug: true,
@@ -38,12 +48,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     instance.addEventListener("open", () => {
-      cleanupPings();
-      pingIntervalRef.current = setInterval(() => {
-        if (instance.readyState === WebSocket.OPEN) {
-          instance.send(JSON.stringify({ type: "ping" }));
-        }
-      }, Constants.PingInterval);
+      startPinging(instance);
       handlersRef.current.forEach((h) => h.onOpen?.());
     });
 
