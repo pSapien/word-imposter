@@ -6,5 +6,5 @@ export const Constants = {
   },
   Endpoint: "https://a0217d0b33f1.ngrok-free.app",
   PingInterval: 2500,
-  ShowDebugLogs: false,
+  ShowDebugLogs: true,
 };

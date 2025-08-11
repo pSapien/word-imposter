@@ -34,6 +34,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     pingIntervalRef.current = setInterval(() => {
       if (instance.readyState === WebSocket.OPEN) {
+        console.log("SX: ping");
         instance.send(JSON.stringify({ type: "ping" }));
       }
     }, Constants.PingInterval);
@@ -47,24 +48,28 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     instance.addEventListener("open", () => {
+      console.log("Socket Opened");
       startPinging(instance);
       handlersRef.current.forEach((h) => h.onOpen?.());
     });
 
     instance.addEventListener("close", () => {
+      console.log("Socket Closed");
       cleanupPings();
       handlersRef.current.forEach((h) => h.onClose?.());
     });
 
     instance.addEventListener("error", (event) => {
-      handlersRef.current.forEach((h) =>
-        h.onError?.(event instanceof ErrorEvent ? event.error : new Error("Unknown error"))
-      );
+      console.log("Socket Errored", event);
+      handlersRef.current.forEach((h) => {
+        h.onError?.(event instanceof ErrorEvent ? event.error : new Error("Unknown error"));
+      });
     });
 
     instance.addEventListener("message", (event) => {
       try {
         const parsed = JSON.parse(event.data) as ServerResponseEvents;
+        console.log("RX:", parsed.type);
         handlersRef.current.forEach((h) => {
           const handler = h[parsed.type];
           // @ts-ignore: to be checked later
@@ -80,6 +85,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   const send = (event: ClientRequestEvents) => {
     if (socket.readyState === WebSocket.OPEN) {
+      console.log("SX:", event.type);
       socket.send(JSON.stringify(event));
     } else {
       console.warn("Socket not open, can't send:", event);
@@ -101,6 +107,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && socket.readyState === WebSocket.CLOSING) {
+        console.log("Socket Reconnect");
         socket.reconnect();
       }
     };
