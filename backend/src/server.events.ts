@@ -1,6 +1,6 @@
 import { Roles, type ServerResponseEvents } from "@imposter/shared";
 import type { EventHandlerMap, Game, Player, Room } from "./server.type.js";
-import { WORD_PAIRS } from "./wordpairs.js";
+import { getRandomWordPair } from "./wordpairs.js";
 
 // --- In-Memory Stores ---
 const rooms = new Map<string, Room>();
@@ -13,6 +13,7 @@ export const eventHandlers: EventHandlerMap = {
   },
   JoinRoomRequestEvent: (ws, payload) => {
     const { playerName, role, roomName } = payload;
+    console.log("JoinRoomRequestEvent:", playerName, role, roomName);
 
     if (!playerName?.trim() || !roomName?.trim()) {
       console.warn("Invalid player name or room name");
@@ -77,7 +78,8 @@ export const eventHandlers: EventHandlerMap = {
   },
 
   StartGameRequestEvent: (ws, payload) => {
-    const { roomName, playerName } = payload;
+    const { roomName, playerName, gameSettings } = payload;
+    const { wordCategories } = gameSettings;
     const room = rooms.get(roomName);
 
     if (!room) return console.warn(`Room ${roomName} not found`);
@@ -86,9 +88,12 @@ export const eventHandlers: EventHandlerMap = {
     const imposterName = selectRandomImposter(room.players);
     if (!imposterName) return console.error("Failed to select imposter");
 
-    const { imposterWord, normalWord } = getRandomWordPair();
+    const randomWordCategory = wordCategories[Math.floor(Math.random() * wordCategories.length)];
+    console.log("Selected random word category:", randomWordCategory);
+    const { imposterWord, normalWord } = getRandomWordPair(randomWordCategory);
     const newGame: Game = {
       imposterName,
+      wordCategories: wordCategories,
       round: (room.games.length + 1).toString(),
       startedAt: Date.now(),
       imposterWord,
@@ -252,15 +257,4 @@ export function handlePlayerDisconnect(ws: Bun.WebSocket): void {
       }
     }
   }
-}
-
-export function getRandomWordPair(): { normalWord: string; imposterWord: string } {
-  const randomPairIndex = Math.floor(Math.random() * WORD_PAIRS.length);
-  const selectedPair = WORD_PAIRS[randomPairIndex];
-  const randomAssignment = Math.floor(Math.random() * 2);
-
-  return {
-    normalWord: selectedPair[randomAssignment],
-    imposterWord: selectedPair[1 - randomAssignment],
-  };
 }

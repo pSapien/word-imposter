@@ -8,6 +8,10 @@ export interface Spectator {
   name: string;
 }
 
+export interface GameSettings {
+  wordCategories: string[];
+}
+
 interface JoinRoomRequestEvent {
   type: "JoinRoomRequestEvent";
   payload: {
@@ -29,6 +33,7 @@ interface StartGameRequestEvent {
   payload: {
     roomName: string;
     playerName: string;
+    gameSettings: GameSettings;
   };
 }
 

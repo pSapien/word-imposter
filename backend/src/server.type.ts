@@ -14,6 +14,7 @@ export type Game = {
   startedAt: number;
   imposterWord: string;
   normalWord: string;
+  wordCategories: string[];
 };
 
 export type Room = {

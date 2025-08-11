@@ -3,6 +3,7 @@ export const Constants = {
     Name: "$$name$$",
     RoomId: "$$roomId$$",
     SelectedRole: "$$selectedRole$$",
+    GameSettings: "$$game_settings$$",
   },
   Endpoint: "https://a0217d0b33f1.ngrok-free.app",
   PingInterval: 2500,
