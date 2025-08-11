@@ -137,7 +137,7 @@ export function useSocket(handlers: SocketEventHandlers): (event: ClientRequestE
   useEffect(() => {
     addHandlers(handlersRef.current);
     return () => removeHandlers(handlersRef.current);
-  }, []);
+  }, [addHandlers, removeHandlers]);
 
   return send;
 }
