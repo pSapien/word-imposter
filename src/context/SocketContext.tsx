@@ -100,6 +100,20 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && socket.readyState === WebSocket.CLOSING) {
+        socket.reconnect();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [socket]);
+
+  useEffect(() => {
     return () => {
       cleanupPings();
       socket.close();
