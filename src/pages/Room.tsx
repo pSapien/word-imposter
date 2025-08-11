@@ -4,7 +4,7 @@ import type { Player, GameSettings } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
-import { AnimatedBanner, SettingsModal, WordBlock } from "../components";
+import { AnimatedBanner, SettingsModal, WordBlock, ViewSettingsModal } from "../components";
 
 export function Room() {
   const queryParams = useParams<{ roomName: string }>();
@@ -17,8 +17,11 @@ export function Room() {
   const [imposterName, setImposterName] = useState("");
   const [isConnecting, setIsConnecting] = useState(true);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
-  const [gameSettings, setGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
+  const [hostGameSettings, setHostGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
     wordCategories: ["legacy"],
+  });
+  const [gameSettings, setGameSettings] = useState<GameSettings>({
+    wordCategories: [],
   });
 
   const isGameStarted = word.length > 0;
@@ -49,6 +52,7 @@ export function Room() {
       if (payload.game?.normalWord) setWord(payload.game?.normalWord);
       if (payload.spectators) setSpectators(payload.spectators);
       if (payload.game?.imposterWord) setImposterWord(payload.game.imposterWord);
+      if (payload.game?.settings) setGameSettings(payload.game.settings);
       if (payload.game?.imposterName) setImposterName(payload.game?.imposterName);
 
       setPlayers(payload.players);
@@ -67,7 +71,7 @@ export function Room() {
 
     send({
       type: "StartGameRequestEvent",
-      payload: { playerName: userName as string, roomName, gameSettings: gameSettings },
+      payload: { playerName: userName as string, roomName, gameSettings: hostGameSettings },
     });
   }
 
@@ -84,10 +88,18 @@ export function Room() {
   return (
     <>
       {isConnecting && <AnimatedBanner.Connecting />}
-      {isSettingsOpen && (
+      {isSettingsOpen && isHost && (
         <SettingsModal
+          state={hostGameSettings}
+          onChange={setHostGameSettings}
+          onClose={() => {
+            setSettingsOpen(false);
+          }}
+        />
+      )}
+      {isSettingsOpen && !isHost && (
+        <ViewSettingsModal
           state={gameSettings}
-          onChange={setGameSettings}
           onClose={() => {
             setSettingsOpen(false);
           }}
@@ -114,15 +126,13 @@ export function Room() {
             </h2>
           </div>
 
-          {isHost && (
-            <button
-              onClick={() => setSettingsOpen(true)}
-              className="text-green-600 hover:text-green-800 font-semibold text-sm px-3 py-1 rounded-md border border-green-600 hover:bg-green-50 transition"
-              aria-label="Game Settings"
-            >
-              Settings ⚙️
-            </button>
-          )}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="text-green-600 hover:text-green-800 font-semibold text-sm px-3 py-1 rounded-md border border-green-600 hover:bg-green-50 transition"
+            aria-label="Game Settings"
+          >
+            Settings ⚙️
+          </button>
         </header>
 
         <div className="w-full bg-white shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
