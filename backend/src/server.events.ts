@@ -63,6 +63,9 @@ export const eventHandlers: EventHandlerMap = {
     if (playerIndex !== -1) room.players.splice(playerIndex, 1);
     if (spectatorIndex !== -1) room.spectators.splice(spectatorIndex, 1);
 
+    playerSockets.set(playerName, ws);
+    socketToPlayer.set(ws, playerName);
+
     const kickedSocket = playerSockets.get(playerNameToBeKicked);
     playerSockets.delete(playerNameToBeKicked);
     socketToPlayer.delete(kickedSocket);
@@ -94,6 +97,9 @@ export const eventHandlers: EventHandlerMap = {
 
     room.games.push(newGame);
 
+    playerSockets.set(playerName, ws);
+    socketToPlayer.set(ws, playerName);
+
     broadcastToRoom(room, {
       type: "GameStartedResponseEvent",
       payload: { roomName },
@@ -117,6 +123,9 @@ export const eventHandlers: EventHandlerMap = {
     };
 
     const lastGame = getLastGame(room.games);
+
+    playerSockets.set(playerName, ws);
+    socketToPlayer.set(ws, playerName);
 
     if (!lastGame) {
       return sendResponse(ws, {
@@ -155,6 +164,9 @@ export const eventHandlers: EventHandlerMap = {
         normalWord: lastGame.normalWord,
       };
     }
+
+    playerSockets.set(playerName, ws);
+    socketToPlayer.set(ws, playerName);
 
     sendResponse(ws, {
       type: "GetRoomInfoResponseEvent",
