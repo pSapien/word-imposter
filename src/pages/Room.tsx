@@ -69,83 +69,94 @@ export function Room() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center">
-      <div className="w-full max-w-md mb-4">
-        <WordBlock word={word} shouldHighlight={!!imposterWord} />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <header className="w-full bg-white shadow-sm p-4 flex justify-center border-b border-gray-200">
+        <h2 className="text-sm font-medium text-gray-600">
+          Room ID: <span className="font-semibold text-gray-900">{roomName}</span>
+        </h2>
+      </header>
+
+      <div className="w-full bg-white shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
+        <div className="max-w-md w-full">
+          <WordBlock word={word} shouldHighlight={!!imposterWord} />
+        </div>
       </div>
 
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
-        {players
-          .slice()
-          .sort((a, b) => {
-            /** ensure the host is only first */
-            if (a.name === hostName) return -1;
-            if (b.name === hostName) return 1;
-            return 0;
-          })
-          .map((player, index) => {
-            const shouldShowKick = isHost && player.name !== userName;
-            const isPlayerHost = player.name === hostName;
+      <main className="flex-1 overflow-y-auto px-4 py-3 space-y-6">
+        <section className="max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            Players<span className="text-sm font-normal text-gray-500"> ({players.length})</span>
+          </h3>
+          <div className="bg-white shadow-md rounded-lg divide-y divide-gray-200">
+            {players
+              .slice()
+              .sort((a, b) => {
+                if (a.name === hostName) return -1;
+                if (b.name === hostName) return 1;
+                return 0;
+              })
+              .map((player, index) => {
+                const shouldShowKick = isHost && player.name !== userName;
+                const isPlayerHost = player.name === hostName;
 
-            return (
-              <div
-                key={index}
-                className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2"
-              >
-                <span className="text-base font-medium text-gray-800">
-                  {player.name}
-                  {isPlayerHost && (
-                    <span className="ml-2 text-xs font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full">
-                      H
+                return (
+                  <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
+                    <span className="text-base font-medium text-gray-800 flex items-center">
+                      {player.name}
+                      {isPlayerHost && (
+                        <span className="ml-2 text-xs font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full">
+                          H
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
 
-                {imposterName === player.name && imposterWord && (
-                  <span className="text-base font-medium text-red-500 bg-red-200 px-2 border border-red-500 rounded-md">
-                    {imposterWord}
-                  </span>
-                )}
+                    {imposterName === player.name && imposterWord && (
+                      <span className="text-sm font-medium text-red-600 bg-red-100 px-2 py-0.5 border border-red-400 rounded-md">
+                        {imposterWord}
+                      </span>
+                    )}
 
-                {shouldShowKick && (
-                  <button
-                    onClick={() => kickPlayer(player)}
-                    className="text-red-500 hover:text-red-700 text-2xl px-2 py-1"
-                    title="Kick player"
-                  >
-                    ⛔
-                  </button>
-                )}
+                    {shouldShowKick && (
+                      <button
+                        onClick={() => kickPlayer(player)}
+                        className="text-red-500 hover:text-red-700 text-lg px-2 py-1"
+                        title="Kick player"
+                      >
+                        ⛔
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </section>
+
+        <section className="max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            Spectators<span className="text-sm font-normal text-gray-500"> ({spectators.length})</span>
+          </h3>
+          <div className="bg-white shadow-md rounded-lg divide-y divide-gray-200">
+            {spectators.map((player, index) => (
+              <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
+                <span className="text-base font-medium text-gray-800">{player.name}</span>
               </div>
-            );
-          })}
-      </div>
+            ))}
+          </div>
+        </section>
+      </main>
 
-      <div className="h-8" />
-
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-4 space-y-3">
-        {spectators.map((player, index) => {
-          return (
-            <div key={index} className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2">
-              <span className="text-base font-medium text-gray-800">{player.name}</span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="w-full max-w-md text-center mt-auto pt-6">
-        {isHost && (
-          <div className="w-full max-w-md mt-6">
+      <footer className="w-full bg-white shadow-inner p-4 sticky bottom-0 border-t border-gray-200">
+        <div className="max-w-md mx-auto">
+          {isHost && (
             <button
               onClick={start}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow"
             >
-              {isGameStarted ? "Next Round" : "Start Game"}
+              {isGameStarted ? "Next Round" : "Play Again"}
             </button>
-          </div>
-        )}
-
-        <h2 className="text-sm text-gray-500">Room: {roomName}</h2>
-      </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }
