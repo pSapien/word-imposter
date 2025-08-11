@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router";
-import type { Player } from "../../shared";
+import type { Player, GameSettings } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
-import { AnimatedBanner, WordBlock } from "../components";
+import { AnimatedBanner, SettingsModal, WordBlock } from "../components";
 
 export function Room() {
   const queryParams = useParams<{ roomName: string }>();
@@ -16,6 +16,10 @@ export function Room() {
   const [imposterWord, setImposterWord] = useState("");
   const [imposterName, setImposterName] = useState("");
   const [isConnecting, setIsConnecting] = useState(true);
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [gameSettings, setGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
+    wordCategories: ["legacy"],
+  });
 
   const isGameStarted = word.length > 0;
   const roomName = queryParams.roomName as string;
@@ -61,7 +65,10 @@ export function Room() {
       if (!confirmed) return;
     }
 
-    send({ type: "StartGameRequestEvent", payload: { playerName: userName as string, roomName } });
+    send({
+      type: "StartGameRequestEvent",
+      payload: { playerName: userName as string, roomName, gameSettings: gameSettings },
+    });
   }
 
   function kickPlayer(player: Player) {
@@ -77,13 +84,45 @@ export function Room() {
   return (
     <>
       {isConnecting && <AnimatedBanner.Connecting />}
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="w-full bg-white shadow-sm p-4 flex justify-center border-b border-gray-200">
-          <span className={`inline-block rounded-full w-4 h-4 mx-1 ${isConnected ? "bg-green-700" : "bg-red-700"}`} />
+      {isSettingsOpen && (
+        <SettingsModal
+          state={gameSettings}
+          onChange={setGameSettings}
+          onClose={() => {
+            setSettingsOpen(false);
+          }}
+        />
+      )}
 
-          <h2 className="text-sm font-medium text-gray-600">
-            Room ID: <span className="font-semibold text-gray-900">{roomName}</span>
-          </h2>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <header className="w-full bg-white shadow-sm p-4 flex justify-between items-center border-b border-gray-200">
+          <button
+            onClick={() => {
+              window.history.back();
+            }}
+            className="text-gray-600 hover:text-gray-900 font-semibold text-sm px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400 transition"
+            aria-label="Back"
+          >
+            ← Back
+          </button>
+
+          <div className="flex items-center space-x-2">
+            <span className={`inline-block rounded-full w-4 h-4 ${isConnected ? "bg-green-700" : "bg-red-700"}`} />
+
+            <h2 className="text-sm font-medium text-gray-600">
+              Room ID: <span className="font-semibold text-gray-900">{roomName}</span>
+            </h2>
+          </div>
+
+          {isHost && (
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-green-600 hover:text-green-800 font-semibold text-sm px-3 py-1 rounded-md border border-green-600 hover:bg-green-50 transition"
+              aria-label="Game Settings"
+            >
+              Settings ⚙️
+            </button>
+          )}
         </header>
 
         <div className="w-full bg-white shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
@@ -108,6 +147,7 @@ export function Room() {
                 .map((player, index) => {
                   const shouldShowKick = isHost && player.name !== userName;
                   const isPlayerHost = player.name === hostName;
+                  const isUserName = player.name === userName;
 
                   return (
                     <div
@@ -119,6 +159,11 @@ export function Room() {
                         {isPlayerHost && (
                           <span className="ml-2 text-xs font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full">
                             H
+                          </span>
+                        )}
+                        {isUserName && (
+                          <span className="ml-2 text-xs font-semibold text-black border-black border-2 px-2 py-0.5 rounded-full">
+                            You
                           </span>
                         )}
                       </span>
@@ -165,7 +210,7 @@ export function Room() {
                 onClick={start}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow"
               >
-                {isGameStarted ? "Next Round" : "Play Again"}
+                {isGameStarted ? "Next" : "Play"}
               </button>
             )}
           </div>
