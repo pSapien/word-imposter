@@ -44,31 +44,43 @@ export function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-100 p-4">
-      <h1 className="text-3xl font-bold mb-6">Join Word Imposter</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
+      <h1 className="text-4xl font-extrabold mb-8 text-gray-900">Join Word Imposter</h1>
 
+      <label htmlFor="name" className="sr-only">
+        Your Name
+      </label>
       <input
+        id="name"
         type="text"
         placeholder="Enter your name"
-        className="border border-gray-500 p-2 w-80 mb-4 rounded-md bg-white"
+        className="border border-gray-400 p-3 w-80 mb-5 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
         value={name}
         autoFocus
         onChange={(e) => setName(e.target.value)}
         disabled={isLoading}
-        autoCapitalize="off"
+        autoComplete="off"
+        autoCapitalize="none"
+        spellCheck={false}
       />
 
+      <label htmlFor="roomName" className="sr-only">
+        Room Name
+      </label>
       <input
+        id="roomName"
         type="text"
         placeholder="Enter the room name"
-        className="border border-gray-500 p-2 w-80 mb-4 rounded-md bg-white"
+        className="border border-gray-400 p-3 w-80 mb-6 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
         disabled={isLoading}
-        autoCapitalize="off"
+        autoComplete="off"
+        autoCapitalize="none"
+        spellCheck={false}
       />
 
-      <div className="flex mb-6 mt-2 w-80 justify-between">
+      <div className="flex mb-8 w-80 justify-between">
         {LabelsToRoles.map(({ label, role }) => (
           <CheckboxButton
             key={role}
@@ -81,11 +93,16 @@ export function Home() {
       </div>
 
       <button
-        className="bg-green-600 w-80 text-white px-6 py-2 rounded hover:bg-blue-600 transition"
+        type="button"
+        className={`w-80 px-6 py-3 rounded font-semibold transition ${
+          isLoading
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300"
+        } text-white`}
         onClick={handleContinue}
         disabled={isLoading}
       >
-        Continue
+        {isLoading ? "Joining..." : "Continue"}
       </button>
     </div>
   );
