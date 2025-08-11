@@ -68,6 +68,7 @@ interface GetRoomInfoResponseEvent {
     players: Player[];
     spectators: Player[];
     game: {
+      settings: GameSettings;
       imposterName: string;
       imposterWord: string;
       normalWord: string;

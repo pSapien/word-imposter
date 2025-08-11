@@ -89,7 +89,7 @@ export const eventHandlers: EventHandlerMap = {
     if (!imposterName) return console.error("Failed to select imposter");
 
     const randomWordCategory = wordCategories[Math.floor(Math.random() * wordCategories.length)];
-    console.log("Selected random word category:", randomWordCategory);
+    console.log("Selected random word category:", wordCategories, randomWordCategory);
     const { imposterWord, normalWord } = getRandomWordPair(randomWordCategory);
     const newGame: Game = {
       imposterName,
@@ -153,6 +153,9 @@ export const eventHandlers: EventHandlerMap = {
         imposterName: lastGame.imposterName,
         imposterWord: lastGame.imposterWord,
         normalWord: lastGame.normalWord,
+        settings: {
+          wordCategories: lastGame.wordCategories,
+        },
       };
     } else if (isImposter) {
       // Imposter sees their word but not who the imposter is
@@ -160,6 +163,9 @@ export const eventHandlers: EventHandlerMap = {
         imposterName: "",
         imposterWord: "",
         normalWord: lastGame.imposterWord,
+        settings: {
+          wordCategories: lastGame.wordCategories,
+        },
       };
     } else {
       // Regular players see the normal word
@@ -167,6 +173,9 @@ export const eventHandlers: EventHandlerMap = {
         imposterName: "",
         imposterWord: "",
         normalWord: lastGame.normalWord,
+        settings: {
+          wordCategories: lastGame.wordCategories,
+        },
       };
     }
 
