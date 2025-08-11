@@ -106,7 +106,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && socket.readyState === WebSocket.CLOSING) {
+      if (!document.hidden && (socket.readyState === WebSocket.CLOSING || socket.readyState === WebSocket.CLOSED)) {
         console.log("Socket Reconnect");
         socket.reconnect();
       }
