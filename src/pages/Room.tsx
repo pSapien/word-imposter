@@ -15,11 +15,12 @@ export function Room() {
   const [spectators, setSpectators] = useState<Player[]>([]);
   const [imposterWord, setImposterWord] = useState("");
   const [imposterName, setImposterName] = useState("");
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   const isGameStarted = word.length > 0;
   const roomName = queryParams.roomName as string;
   const isHost = userName === hostName;
+  const isConnected = isConnecting === false;
 
   const send = useSocket({
     onOpen: () => {
@@ -78,6 +79,8 @@ export function Room() {
       {isConnecting && <AnimatedBanner.Connecting />}
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <header className="w-full bg-white shadow-sm p-4 flex justify-center border-b border-gray-200">
+          <span className={`inline-block rounded-full w-4 h-4 mx-1 ${isConnected ? "bg-green-700" : "bg-red-700"}`} />
+
           <h2 className="text-sm font-medium text-gray-600">
             Room ID: <span className="font-semibold text-gray-900">{roomName}</span>
           </h2>
