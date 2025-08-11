@@ -6,6 +6,7 @@ import { useSocket } from "../context";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import { Constants } from "../constants.ts";
+import { CheckboxButton } from "../components";
 
 const LabelsToRoles = [
   { label: "Host", role: Roles.HOST },
@@ -87,24 +88,5 @@ export function Home() {
         Continue
       </button>
     </div>
-  );
-}
-
-type CheckboxButtonProps = {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled: boolean;
-};
-
-function CheckboxButton({ label, selected, onClick, disabled }: CheckboxButtonProps) {
-  return (
-    <button
-      className={`px-4 py-1 rounded-full border ${selected ? "bg-blue-500 text-white" : "bg-white"}`}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {label}
-    </button>
   );
 }
