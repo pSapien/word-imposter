@@ -41,11 +41,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }
 
   const socket = useMemo(() => {
-    const instance = new ReconnectingWebSocket(Constants.Endpoint, "", {
-      maxReconnectionDelay: 10000,
-      minReconnectionDelay: 1000,
-      maxRetries: Infinity,
-    });
+    const instance = new ReconnectingWebSocket(Constants.Endpoint);
 
     instance.addEventListener("open", () => {
       console.log("Socket Opened");

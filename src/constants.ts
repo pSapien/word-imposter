@@ -6,6 +6,6 @@ export const Constants = {
     GameSettings: "$$game_settings$$",
   },
   Endpoint: "https://a0217d0b33f1.ngrok-free.app",
-  PingInterval: 2500,
+  PingInterval: 1000 * 5,
   ShowDebugLogs: true,
 };
