@@ -28,6 +28,21 @@ interface JoinRoomResponseEvent {
   };
 }
 
+interface StartVoteRequestEvent {
+  type: "StartVoteRequestEvent";
+  payload: {
+    roomName: string;
+    playerName: string;
+  };
+}
+
+interface VoteStartedResponseEvent {
+  type: "VoteStartedResponseEvent";
+  payload: {
+    roomName: string;
+  };
+}
+
 interface StartGameRequestEvent {
   type: "StartGameRequestEvent";
   payload: {
@@ -109,11 +124,13 @@ export type ClientRequestEvents =
   | GetRoomInfoRequestEvent
   | StartNextRoundRequestEvent
   | KickPlayerRequestEvent
-  | PingRequestEvent;
+  | PingRequestEvent
+  | StartVoteRequestEvent;
 
 export type ServerResponseEvents =
   | JoinRoomResponseEvent
   | GameStartedResponseEvent
   | GetRoomInfoResponseEvent
   | PlayerKickedResponseEvent
-  | PongResponseEvent;
+  | PongResponseEvent
+  | VoteStartedResponseEvent;
