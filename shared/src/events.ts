@@ -10,6 +10,7 @@ export interface Spectator {
 
 export interface GameSettings {
   wordCategories: string[];
+  imposterCount: number;
 }
 
 interface JoinRoomRequestEvent {
@@ -69,7 +70,7 @@ interface GetRoomInfoResponseEvent {
     spectators: Player[];
     game: {
       settings: GameSettings;
-      imposterName: string;
+      imposterNames: string[];
       imposterWord: string;
       civilianWord: string;
     } | null;

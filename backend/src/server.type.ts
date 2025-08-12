@@ -9,7 +9,7 @@ export type Spectator = {
 };
 
 export type Game = {
-  imposterName: string;
+  imposterNames: string[];
   round: string;
   startedAt: number;
   imposterWord: string;

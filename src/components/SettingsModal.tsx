@@ -1,12 +1,11 @@
+import type { GameSettings } from "../../shared";
 import { CheckboxButton } from "./CheckboxButton.tsx";
 
-type FormState = {
-  wordCategories: string[];
-};
+type FormState = GameSettings;
 
 type SettingsModalProps = {
   state: FormState;
-  onChange: (formState: FormState) => void;
+  onChange: React.Dispatch<React.SetStateAction<GameSettings>>;
   onClose: () => void;
 };
 
@@ -24,14 +23,18 @@ const categories = [
 ];
 
 export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) {
-  function handleChange(selectedCategory: string) {
+  function handleCategoryChange(selectedCategory: string) {
     const categoriesSet = new Set<string>(state.wordCategories);
     if (categoriesSet.has(selectedCategory)) {
       categoriesSet.delete(selectedCategory);
     } else {
       categoriesSet.add(selectedCategory);
     }
-    onChange({ wordCategories: Array.from(categoriesSet) });
+    onChange((prev) => ({ ...prev, wordCategories: Array.from(categoriesSet) }));
+  }
+
+  function handleImposterCount(imposterCount: number) {
+    onChange((prev) => ({ ...prev, imposterCount }));
   }
 
   return (
@@ -53,12 +56,30 @@ export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) 
                 label={cat.label}
                 key={cat.value}
                 selected={state.wordCategories.includes(cat.value)}
-                onClick={() => handleChange(cat.value)}
+                onClick={() => handleCategoryChange(cat.value)}
                 disabled={false}
               />
             );
           })}
         </ul>
+
+        <div className="mb-6">
+          <label htmlFor="imposter-count" className="block text-sm font-medium text-gray-700 mb-2">
+            Imposter Count
+          </label>
+          <select
+            id="imposter-count"
+            value={state.imposterCount}
+            onChange={(e) => handleImposterCount(Number(e.target.value))}
+            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          >
+            {[1, 2, 3, 4].map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <button
           type="button"
@@ -74,7 +95,6 @@ export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) 
 }
 
 export function ViewSettingsModal({ state, onClose }: Pick<SettingsModalProps, "state" | "onClose">) {
-  console.log("what is state.wordCategories", state.wordCategories);
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
@@ -84,7 +104,7 @@ export function ViewSettingsModal({ state, onClose }: Pick<SettingsModalProps, "
     >
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
         <h2 id="view-settings-title" className="text-xl sm:text-2xl font-bold mb-5 text-gray-900 text-center">
-          Selected Categories
+          Selected Settings
         </h2>
 
         <ul className="flex flex-wrap justify-center gap-3 mb-8">
@@ -102,6 +122,12 @@ export function ViewSettingsModal({ state, onClose }: Pick<SettingsModalProps, "
             );
           })}
         </ul>
+
+        <div className="mb-8 text-center">
+          <span className="inline-block px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full font-medium border border-yellow-300">
+            Imposter Count: {state.imposterCount}
+          </span>
+        </div>
 
         <div className="flex justify-center">
           <button
