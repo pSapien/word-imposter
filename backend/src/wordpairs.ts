@@ -8,6 +8,17 @@ import legacy from "./words/legacy.js";
 import pop from "./words/pop.js";
 import science from "./words/science.js";
 import synonms from "./words/synonms.js";
+import animal from "./words/animal.js";
+import culinary from "./words/culinary.js";
+import history from "./words/history.js";
+import music from "./words/music.js";
+import people from "./words/people.js";
+import nature from "./words/nature.js";
+import profession from "./words/profession.js";
+import sports from "./words/sports.js";
+import technology from "./words/technology.js";
+import vehicle from "./words/vehicle.js";
+
 
 const WordPairsCategory = [
   { label: "Abstract", value: "abstract", words: abstract },
@@ -20,6 +31,16 @@ const WordPairsCategory = [
   { label: "Pop Culture", value: "pop", words: pop },
   { label: "Science", value: "science", words: science },
   { label: "Synonyms", value: "synonms", words: synonms },
+  { label: "Animal", value: "animal", words: animal },
+  { label: "Culinary", value: "culinary", words: culinary },
+  { label: "History", value: "history", words: history },
+  { label: "Music", value: "music", words: music },
+  { label: "People", value: "people", words: people },
+  { label: "Nature", value: "nature", words: nature },
+  { label: "Profession", value: "profession", words: profession },
+  { label: "Sports", value: "sports", words: sports },
+  { label: "Technology", value: "technology", words: technology },
+  { label: "Vehicle", value: "vehicle", words: vehicle },
 ];
 
 export function getWordsList() {
