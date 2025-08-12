@@ -6,25 +6,40 @@ import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
 import { AnimatedBanner, SettingsModal, WordBlock, ViewSettingsModal } from "../components";
 
+type GameState = {
+  hostName: string;
+  players: Player[];
+  spectators: Player[];
+  civilianWord: string;
+  imposterWord: string;
+  imposterName: string;
+  gameSettings: GameSettings;
+};
+
+const defaultGameState: GameState = {
+  hostName: "",
+  players: [],
+  spectators: [],
+  civilianWord: "",
+  imposterWord: "",
+  imposterName: "",
+  gameSettings: {
+    wordCategories: [],
+  },
+};
+
 export function Room() {
   const queryParams = useParams<{ roomName: string }>();
-  const [word, setWord] = useState("");
-  const [userName] = useLocalStorage(Constants.StorageKeys.Name);
-  const [hostName, setHostName] = useState<string | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [spectators, setSpectators] = useState<Player[]>([]);
-  const [imposterWord, setImposterWord] = useState("");
-  const [imposterName, setImposterName] = useState("");
   const [isConnecting, setIsConnecting] = useState(true);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
+  const [userName] = useLocalStorage<string>(Constants.StorageKeys.Name);
   const [hostGameSettings, setHostGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
     wordCategories: ["legacy"],
   });
-  const [gameSettings, setGameSettings] = useState<GameSettings>({
-    wordCategories: [],
-  });
+  const [gameState, setGameState] = useState<GameState>(defaultGameState);
+  const { gameSettings, hostName, imposterName, imposterWord, players, spectators, civilianWord } = gameState;
 
-  const isGameStarted = word.length > 0;
+  const isGameStarted = civilianWord.length > 0;
   const roomName = queryParams.roomName as string;
   const isHost = userName === hostName;
   const isConnected = isConnecting === false;
@@ -47,20 +62,22 @@ export function Room() {
       updateRoom();
     },
     GetRoomInfoResponseEvent: (payload) => {
-      setHostName(payload.hostName);
-
-      if (payload.game?.normalWord) setWord(payload.game?.normalWord);
-      if (payload.spectators) setSpectators(payload.spectators);
-      if (payload.game?.imposterWord) setImposterWord(payload.game.imposterWord);
-      if (payload.game?.settings) setGameSettings(payload.game.settings);
-      if (payload.game?.imposterName) setImposterName(payload.game?.imposterName);
-
-      setPlayers(payload.players);
+      setGameState({
+        hostName: payload.hostName,
+        players: payload.players,
+        spectators: payload.spectators,
+        civilianWord: payload.game?.civilianWord ?? "",
+        imposterWord: payload.game?.imposterWord ?? "",
+        imposterName: payload.game?.imposterName ?? "",
+        gameSettings: {
+          wordCategories: payload.game?.settings?.wordCategories ?? [],
+        },
+      });
     },
   });
 
   function updateRoom() {
-    send({ type: "GetRoomInfoRequestEvent", payload: { roomName: roomName, playerName: userName as string } });
+    send({ type: "GetRoomInfoRequestEvent", payload: { roomName: roomName, playerName: userName } });
   }
 
   function start() {
@@ -137,7 +154,7 @@ export function Room() {
 
         <div className="w-full bg-white shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
           <div className="max-w-md w-full">
-            <WordBlock word={word} shouldHighlight={!!imposterWord} />
+            <WordBlock word={civilianWord} shouldHighlight={!!imposterWord} />
           </div>
         </div>
 

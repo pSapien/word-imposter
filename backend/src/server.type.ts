@@ -13,7 +13,7 @@ export type Game = {
   round: string;
   startedAt: number;
   imposterWord: string;
-  normalWord: string;
+  civilianWord: string;
   wordCategories: string[];
 };
 
