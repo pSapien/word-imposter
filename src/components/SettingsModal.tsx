@@ -20,6 +20,16 @@ const categories = [
   { label: "Pop Culture", value: "pop" },
   { label: "Science", value: "science" },
   { label: "Synonyms", value: "synonms" },
+  { label: "Animal", value: "animal" },
+  { label: "Culinary", value: "culinary" },
+  { label: "History", value: "history"},
+  { label: "Music", value: "music" },
+  { label: "People", value: "people" },
+  { label: "Nature", value: "nature" },
+  { label: "Profession", value: "profession" },
+  { label: "Sports", value: "sports" },
+  { label: "Technology", value: "technology" },
+  { label: "Vehicle", value: "vehicle" },
 ];
 
 export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) {
