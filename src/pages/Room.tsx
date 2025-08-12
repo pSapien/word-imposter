@@ -12,7 +12,7 @@ type GameState = {
   spectators: Player[];
   civilianWord: string;
   imposterWord: string;
-  imposterName: string;
+  imposterNames: string[];
   gameSettings: GameSettings;
 };
 
@@ -22,9 +22,10 @@ const defaultGameState: GameState = {
   spectators: [],
   civilianWord: "",
   imposterWord: "",
-  imposterName: "",
+  imposterNames: [],
   gameSettings: {
     wordCategories: [],
+    imposterCount: 0,
   },
 };
 
@@ -35,9 +36,10 @@ export function Room() {
   const [userName] = useLocalStorage<string>(Constants.StorageKeys.Name);
   const [hostGameSettings, setHostGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
     wordCategories: ["legacy"],
+    imposterCount: 1,
   });
   const [gameState, setGameState] = useState<GameState>(defaultGameState);
-  const { gameSettings, hostName, imposterName, imposterWord, players, spectators, civilianWord } = gameState;
+  const { gameSettings, hostName, imposterNames, imposterWord, players, spectators, civilianWord } = gameState;
 
   const isGameStarted = civilianWord.length > 0;
   const roomName = queryParams.roomName as string;
@@ -68,9 +70,10 @@ export function Room() {
         spectators: payload.spectators,
         civilianWord: payload.game?.civilianWord ?? "",
         imposterWord: payload.game?.imposterWord ?? "",
-        imposterName: payload.game?.imposterName ?? "",
+        imposterNames: payload.game?.imposterNames ?? [],
         gameSettings: {
           wordCategories: payload.game?.settings?.wordCategories ?? [],
+          imposterCount: payload.game?.settings?.imposterCount ?? 0,
         },
       });
     },
@@ -195,7 +198,7 @@ export function Room() {
                         )}
                       </span>
 
-                      {imposterName === player.name && imposterWord && (
+                      {imposterNames.includes(player.name) && imposterWord && (
                         <span className="text-sm font-medium text-red-600 bg-red-100 px-2 py-0.5 border border-red-400 rounded-md">
                           {imposterWord}
                         </span>

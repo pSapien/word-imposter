@@ -1,6 +1,7 @@
 import { Roles, type ServerResponseEvents } from "@imposter/shared";
 import type { EventHandlerMap, Game, Player, Room } from "./server.type.js";
 import { getRandomWordPair } from "./wordpairs.js";
+import { random, randomArr } from "./utils";
 
 // --- In-Memory Stores ---
 const rooms = new Map<string, Room>();
@@ -79,19 +80,19 @@ export const eventHandlers: EventHandlerMap = {
 
   StartGameRequestEvent: (ws, payload) => {
     const { roomName, playerName, gameSettings } = payload;
-    const { wordCategories } = gameSettings;
+    const { wordCategories, imposterCount } = gameSettings;
     const room = rooms.get(roomName);
 
     if (!room) return console.warn(`Room ${roomName} not found`);
     if (room.hostName !== playerName) return console.warn(`Player ${playerName} is not the host of room ${roomName}`);
 
-    const imposterName = selectRandomImposter(room.players);
-    if (!imposterName) return console.error("Failed to select imposter");
-
-    const randomWordCategory = wordCategories[Math.floor(Math.random() * wordCategories.length)];
+    const maxImposters = Math.min(Math.floor(room.players.length / 2), imposterCount);
+    const imposterPlayers = randomArr(room.players, maxImposters);
+    const randomWordCategory = random(wordCategories);
     const { imposterWord, civilianWord } = getRandomWordPair(randomWordCategory);
+
     const newGame: Game = {
-      imposterName,
+      imposterNames: imposterPlayers.map((i) => i.name),
       wordCategories: wordCategories,
       round: (room.games.length + 1).toString(),
       startedAt: Date.now(),
@@ -142,38 +143,41 @@ export const eventHandlers: EventHandlerMap = {
     }
 
     const isSpectator = room.spectators.some((s) => s.name === playerName);
-    const isImposter = currentGame.imposterName === playerName;
+    const isImposter = currentGame.imposterNames.includes(playerName);
 
     let gameInfo;
 
     if (isSpectator) {
       // Spectators see everything
       gameInfo = {
-        imposterName: currentGame.imposterName,
+        imposterNames: currentGame.imposterNames,
         imposterWord: currentGame.imposterWord,
         civilianWord: currentGame.civilianWord,
         settings: {
           wordCategories: currentGame.wordCategories,
+          imposterCount: currentGame.imposterNames.length,
         },
       };
     } else if (isImposter) {
       // Imposter sees their word but not who the imposter is
       gameInfo = {
-        imposterName: "",
+        imposterNames: [],
         imposterWord: "",
         civilianWord: currentGame.imposterWord,
         settings: {
           wordCategories: currentGame.wordCategories,
+          imposterCount: currentGame.imposterNames.length,
         },
       };
     } else {
       // Regular players see the normal word
       gameInfo = {
-        imposterName: "",
+        imposterNames: [],
         imposterWord: "",
         civilianWord: currentGame.civilianWord,
         settings: {
           wordCategories: currentGame.wordCategories,
+          imposterCount: currentGame.imposterNames.length,
         },
       };
     }
@@ -221,12 +225,6 @@ function broadcastToRoom(room: Room, response: ServerResponseEvents): void {
     const socket = playerSockets.get(spectator.name);
     if (socket) sendResponse(socket, response);
   });
-}
-
-function selectRandomImposter(players: Player[]): string | null {
-  if (players.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * players.length);
-  return players[randomIndex].name;
 }
 
 export function handlePlayerDisconnect(ws: Bun.WebSocket): void {
