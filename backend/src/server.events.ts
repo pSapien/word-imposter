@@ -89,15 +89,14 @@ export const eventHandlers: EventHandlerMap = {
     if (!imposterName) return console.error("Failed to select imposter");
 
     const randomWordCategory = wordCategories[Math.floor(Math.random() * wordCategories.length)];
-    console.log("Selected random word category:", wordCategories, randomWordCategory);
-    const { imposterWord, normalWord } = getRandomWordPair(randomWordCategory);
+    const { imposterWord, civilianWord } = getRandomWordPair(randomWordCategory);
     const newGame: Game = {
       imposterName,
       wordCategories: wordCategories,
       round: (room.games.length + 1).toString(),
       startedAt: Date.now(),
       imposterWord,
-      normalWord,
+      civilianWord,
     };
 
     room.games.push(newGame);
@@ -127,12 +126,12 @@ export const eventHandlers: EventHandlerMap = {
       roomName: room.roomName,
     };
 
-    const lastGame = getLastGame(room.games);
+    const currentGame = getCurrentGame(room.games);
 
     playerSockets.set(playerName, ws);
     socketToPlayer.set(ws, playerName);
 
-    if (!lastGame) {
+    if (!currentGame) {
       return sendResponse(ws, {
         type: "GetRoomInfoResponseEvent",
         payload: {
@@ -143,18 +142,18 @@ export const eventHandlers: EventHandlerMap = {
     }
 
     const isSpectator = room.spectators.some((s) => s.name === playerName);
-    const isImposter = lastGame.imposterName === playerName;
+    const isImposter = currentGame.imposterName === playerName;
 
     let gameInfo;
 
     if (isSpectator) {
       // Spectators see everything
       gameInfo = {
-        imposterName: lastGame.imposterName,
-        imposterWord: lastGame.imposterWord,
-        normalWord: lastGame.normalWord,
+        imposterName: currentGame.imposterName,
+        imposterWord: currentGame.imposterWord,
+        civilianWord: currentGame.civilianWord,
         settings: {
-          wordCategories: lastGame.wordCategories,
+          wordCategories: currentGame.wordCategories,
         },
       };
     } else if (isImposter) {
@@ -162,9 +161,9 @@ export const eventHandlers: EventHandlerMap = {
       gameInfo = {
         imposterName: "",
         imposterWord: "",
-        normalWord: lastGame.imposterWord,
+        civilianWord: currentGame.imposterWord,
         settings: {
-          wordCategories: lastGame.wordCategories,
+          wordCategories: currentGame.wordCategories,
         },
       };
     } else {
@@ -172,9 +171,9 @@ export const eventHandlers: EventHandlerMap = {
       gameInfo = {
         imposterName: "",
         imposterWord: "",
-        normalWord: lastGame.normalWord,
+        civilianWord: currentGame.civilianWord,
         settings: {
-          wordCategories: lastGame.wordCategories,
+          wordCategories: currentGame.wordCategories,
         },
       };
     }
@@ -201,7 +200,7 @@ function sendResponse(ws: Bun.WebSocket, response: ServerResponseEvents): void {
   }
 }
 
-function getLastGame(games: Game[]): Game | null {
+function getCurrentGame(games: Game[]): Game | null {
   return games.length > 0 ? games[games.length - 1] : null;
 }
 

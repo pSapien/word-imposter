@@ -71,7 +71,7 @@ interface GetRoomInfoResponseEvent {
       settings: GameSettings;
       imposterName: string;
       imposterWord: string;
-      normalWord: string;
+      civilianWord: string;
     } | null;
   };
 }

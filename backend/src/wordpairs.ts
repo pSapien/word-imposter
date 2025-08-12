@@ -26,7 +26,7 @@ export function getWordsList() {
   return WordPairsCategory.slice();
 }
 
-export function getRandomWordPair(category: string): { normalWord: string; imposterWord: string } {
+export function getRandomWordPair(category: string): { civilianWord: string; imposterWord: string } {
   const categoryData = getWordsList().find((cat) => cat.value === category);
   const categoryList = categoryData?.words ?? legacy;
 
@@ -34,7 +34,7 @@ export function getRandomWordPair(category: string): { normalWord: string; impos
   const selectedPair = categoryList[randomPairIndex];
   const randomAssignment = Math.floor(Math.random() * 2);
   return {
-    normalWord: selectedPair[randomAssignment],
+    civilianWord: selectedPair[randomAssignment],
     imposterWord: selectedPair[1 - randomAssignment],
   };
 }
