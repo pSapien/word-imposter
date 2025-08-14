@@ -54,8 +54,8 @@ export function Home() {
       <div className="absolute top-10 left-10 w-40 h-40 bg-green-300/30 rounded-full blur-3xl animate-[pulse_6s_ease-in-out_infinite]"></div>
       <div className="absolute bottom-10 right-10 w-48 h-48 bg-pink-300/30 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]"></div>
 
-      <h1 className="text-5xl font-extrabold mb-10 text-gray-900 drop-shadow-lg tracking-tight text-center animate-fade-in">
-        Join <span className="text-green-600">Word</span> Imposter
+      <h1 className="text-5xl font-extrabold mb-10 text-teal-700 drop-shadow-lg tracking-tight text-center relative inline-block">
+        Word Imposter
       </h1>
 
       <input
