@@ -8,11 +8,11 @@ type WordBlockProps = {
 export function WordBlock({ word, shouldHighlight = false }: WordBlockProps) {
   const [shouldShowWord, setShouldShowWord] = useState(true);
 
-  const shouldColor = shouldHighlight && shouldShowWord;
+  const isHighlighted = shouldHighlight && shouldShowWord;
 
   if (word === "") {
     return (
-      <div className="w-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors duration-150 border border-gray-300 rounded-xl shadow-md px-4 py-6 text-center">
+      <div className="w-full bg-white/60 backdrop-blur-md border border-gray-300 rounded-xl shadow-lg px-4 py-6 text-center transition-colors duration-200 hover:bg-white/70">
         <span className="text-2xl font-semibold font-mono tracking-wide break-words opacity-40">— — —</span>
       </div>
     );
@@ -21,24 +21,23 @@ export function WordBlock({ word, shouldHighlight = false }: WordBlockProps) {
   return (
     <button
       onClick={() => setShouldShowWord((prev) => !prev)}
-      className={[
-        "w-full bg-gray-100 transition-colors duration-150 border border-gray-300 rounded-xl shadow-md px-4 py-6 text-center",
-        shouldColor ? "bg-green-200 border-green-500" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={`
+        w-full rounded-xl px-4 py-6 text-center font-mono font-semibold text-2xl tracking-wide
+        transition-all duration-200 transform shadow-lg border
+        ${isHighlighted ? "bg-green-200 border-green-500 shadow-green-300/50" : "bg-white/60 border-gray-300"}
+        hover:scale-105 active:scale-95
+        backdrop-blur-md
+      `}
     >
       <span
-        className={[
-          "text-2xl font-semibold font-mono tracking-wide break-words transition-opacity duration-200",
-          shouldShowWord ? "opacity-100" : "opacity-40",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+        className={`
+          block transition-opacity duration-200 break-words
+          ${shouldShowWord ? "opacity-100" : "opacity-40"}
+        `}
       >
         {shouldShowWord ? word : "— — —"}
       </span>
-      <p className="mt-1 text-sm text-gray-500">{shouldShowWord ? "Tap to hide" : "Tap to reveal"}</p>
+      <p className="mt-1 text-sm text-gray-500 font-normal">{shouldShowWord ? "Tap to hide" : "Tap to reveal"}</p>
     </button>
   );
 }
