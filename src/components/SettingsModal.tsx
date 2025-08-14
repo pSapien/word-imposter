@@ -6,34 +6,34 @@ type FormState = GameSettings;
 type SettingsModalProps = {
   state: FormState;
   onChange: React.Dispatch<React.SetStateAction<GameSettings>>;
-  onClose: () => void;
+  hide: () => void;
 };
 
 const categories = [
-  { label: "Abstract", value: "abstract" },
+  // { label: "Abstract", value: "abstract" },
   { label: "Fantasy", value: "fantasy" },
   { label: "Food", value: "food" },
   { label: "General", value: "general" },
-  { label: "Geography", value: "geography" },
+  // { label: "Geography", value: "geography" },
   { label: "Hobbies", value: "hobbies" },
   { label: "Legacy", value: "legacy" },
   { label: "Pop Culture", value: "pop" },
   { label: "Science", value: "science" },
   { label: "Synonyms", value: "synonms" },
   { label: "Animal", value: "animal" },
-  { label: "Culinary", value: "culinary" },
+  // { label: "Culinary", value: "culinary" },
   { label: "History", value: "history" },
   { label: "Music", value: "music" },
   { label: "People", value: "people" },
   { label: "Nature", value: "nature" },
-  { label: "Profession", value: "profession" },
+  // { label: "Profession", value: "profession" },
   { label: "Sports", value: "sports" },
   { label: "Technology", value: "technology" },
-  { label: "Vehicle", value: "vehicle" },
+  // { label: "Vehicle", value: "vehicle" },
   { label: "Nepali", value: "nepali" },
 ];
 
-export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) {
+export function SettingsModal({ hide, state, onChange }: SettingsModalProps) {
   function handleCategoryChange(selectedCategory: string) {
     const categoriesSet = new Set<string>(state.wordCategories);
     if (categoriesSet.has(selectedCategory)) {
@@ -92,7 +92,7 @@ export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) 
 
         <button
           type="button"
-          onClick={onClose}
+          onClick={hide}
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 font-bold text-lg"
           aria-label="Close settings"
         >
@@ -103,7 +103,7 @@ export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) 
   );
 }
 
-export function ViewSettingsModal({ state, onClose }: Pick<SettingsModalProps, "state" | "onClose">) {
+export function ViewSettingsModal({ state, hide }: Pick<SettingsModalProps, "state" | "hide">) {
   return (
     <div
       className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4"
@@ -150,7 +150,7 @@ export function ViewSettingsModal({ state, onClose }: Pick<SettingsModalProps, "
         <div className="flex justify-center">
           <button
             type="button"
-            onClick={onClose}
+            onClick={hide}
             className="px-6 py-3 bg-green-600 text-white rounded-xl font-medium shadow-lg hover:scale-105 transition-transform focus:outline-none focus:ring-4 focus:ring-green-300"
           >
             Close

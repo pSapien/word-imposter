@@ -46,6 +46,13 @@ interface StartNextRoundRequestEvent {
   };
 }
 
+interface StartNextRoundResponseEvent {
+  type: "StartNextRoundResponseEvent";
+  payload: {
+    roomName: string;
+  };
+}
+
 interface GetRoomInfoRequestEvent {
   type: "GetRoomInfoRequestEvent";
   payload: {
@@ -73,6 +80,14 @@ interface GetRoomInfoResponseEvent {
       imposterNames: string[];
       imposterWord: string;
       civilianWord: string;
+      stage: "discussion" | "voting" | "round_finished";
+      votes: Record<string, string>;
+      eliminated: string[];
+      summary: null | {
+        isImposterFound: boolean;
+        imposterWord: string;
+        imposterSuspectName: string;
+      };
     } | null;
   };
 }
@@ -104,12 +119,62 @@ interface PongResponseEvent {
   payload: {};
 }
 
+interface StartVoteRequestEvent {
+  type: "StartVoteRequestEvent";
+  payload: {
+    playerName: string;
+    roomName: string;
+  };
+}
+
+interface VotedStartedResponseEvent {
+  type: "VotedStartedResponseEvent";
+  payload: {
+    roomName: string;
+  };
+}
+
+interface CastVoteRequestEvent {
+  type: "CastVoteRequestEvent";
+  payload: {
+    voterName: string;
+    voteeName: string;
+    roomName: string;
+  };
+}
+
+interface CastVoteResponseEvent {
+  type: "CastVoteResponseEvent";
+  payload: {
+    roomName: string;
+  };
+}
+
+interface FinishVotingRequestEvent {
+  type: "FinishVotingRequestEvent";
+  payload: {
+    playerName: string;
+    roomName: string;
+  };
+}
+
+interface VotingRoundFinishedResponseEvent {
+  type: "VotingRoundFinishedResponseEvent";
+  payload: {
+    roomName: string;
+  };
+}
+
 export const ErrorCodes = Object.freeze({
   /** room related error, should be prefixed by room */
   Room_NotFound: "room.not_found",
   Room_PlayerNotFound: "room.player_not_found",
   Room_Invalid: "room.invalid",
   Room_UnauthorizedPermission: "room.unauthorized_permission",
+
+  /** Game related eveents */
+  Game_NotFound: "game.not_found",
+  Game_InvalidEvent: "game.invalid_event",
 
   /** auth related errors, should be prefixed by auth */
   Auth_InvalidProfile: "auth.invalid_profile",
@@ -132,7 +197,10 @@ export type ClientRequestEvents =
   | GetRoomInfoRequestEvent
   | StartNextRoundRequestEvent
   | KickPlayerRequestEvent
-  | PingRequestEvent;
+  | PingRequestEvent
+  | StartVoteRequestEvent
+  | CastVoteRequestEvent
+  | FinishVotingRequestEvent;
 
 export type ServerResponseEvents =
   | JoinRoomResponseEvent
@@ -140,4 +208,8 @@ export type ServerResponseEvents =
   | GetRoomInfoResponseEvent
   | PlayerKickedResponseEvent
   | PongResponseEvent
-  | ServerErrorEvent;
+  | ServerErrorEvent
+  | VotedStartedResponseEvent
+  | CastVoteResponseEvent
+  | VotingRoundFinishedResponseEvent
+  | StartNextRoundResponseEvent;
