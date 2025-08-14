@@ -30,6 +30,7 @@ const categories = [
   { label: "Sports", value: "sports" },
   { label: "Technology", value: "technology" },
   { label: "Vehicle", value: "vehicle" },
+  { label: "Nepali", value: "nepali" },
 ];
 
 export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) {
