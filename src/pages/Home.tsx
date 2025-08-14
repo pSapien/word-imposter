@@ -50,17 +50,19 @@ export function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-      <h1 className="text-4xl font-extrabold mb-8 text-gray-900">Join Word Imposter</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-100 via-yellow-50 to-pink-100 p-6 relative overflow-hidden">
+      <div className="absolute top-10 left-10 w-40 h-40 bg-green-300/30 rounded-full blur-3xl animate-[pulse_6s_ease-in-out_infinite]"></div>
+      <div className="absolute bottom-10 right-10 w-48 h-48 bg-pink-300/30 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]"></div>
 
-      <label htmlFor="name" className="sr-only">
-        Your Name
-      </label>
+      <h1 className="text-5xl font-extrabold mb-10 text-gray-900 drop-shadow-lg tracking-tight text-center animate-fade-in">
+        Join <span className="text-green-600">Word</span> Imposter
+      </h1>
+
       <input
         id="name"
         type="text"
         placeholder="Enter your name"
-        className="border border-gray-400 p-3 w-80 mb-5 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+        className="backdrop-blur-md bg-white/60 border border-white/20 p-4 w-80 mb-5 rounded-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-green-400 text-lg placeholder-gray-500 transition-transform focus:scale-105"
         value={name}
         autoFocus
         onChange={(e) => setName(e.target.value)}
@@ -70,14 +72,11 @@ export function Home() {
         spellCheck={false}
       />
 
-      <label htmlFor="roomName" className="sr-only">
-        Room Name
-      </label>
       <input
         id="roomName"
         type="text"
         placeholder="Enter the room name"
-        className="border border-gray-400 p-3 w-80 mb-6 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+        className="backdrop-blur-md bg-white/60 border border-white/20 p-4 w-80 mb-6 rounded-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-green-400 text-lg placeholder-gray-500 transition-transform focus:scale-105"
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
         disabled={isLoading}
@@ -100,10 +99,10 @@ export function Home() {
 
       <button
         type="button"
-        className={`w-80 px-6 py-3 rounded font-semibold transition ${
+        className={`w-80 px-6 py-4 rounded-xl font-bold tracking-wide text-lg transition-all transform hover:scale-105 shadow-lg ${
           isLoading
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300"
+            : "bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 focus:ring-4 focus:ring-green-300"
         } text-white`}
         onClick={handleContinue}
         disabled={isLoading}

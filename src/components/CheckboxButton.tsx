@@ -10,10 +10,14 @@ export function CheckboxButton({ label, selected, onClick, disabled }: CheckboxB
     <button
       type="button"
       className={`
-    px-4 py-2 rounded-full border font-semibold transition
-    focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1
-    ${selected ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300 hover:bg-blue-50"}
-    ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+    px-5 py-3 rounded-xl font-semibold transition-all transform
+    focus:outline-none focus:ring-4 focus:ring-blue-300
+    ${
+      selected
+        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105 ring-2 ring-blue-400"
+        : "backdrop-blur-md bg-white/60 text-gray-700 border border-gray-300 hover:scale-105 hover:shadow-md"
+    }
+    ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer active:scale-95"}
   `}
       disabled={disabled}
       onClick={onClick}

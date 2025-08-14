@@ -147,12 +147,13 @@ export function Room() {
         />
       )}
 
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="w-full bg-white shadow-sm p-4 flex justify-between items-center border-b border-gray-200">
+      <div className="min-h-screen bg-gradient-to-br from-green-100 via-yellow-50 to-pink-100 flex flex-col relative overflow-hidden">
+        <div className="absolute top-12 left-8 w-40 h-40 bg-green-300/30 rounded-full blur-3xl animate-[pulse_6s_ease-in-out_infinite]"></div>
+        <div className="absolute bottom-12 right-6 w-48 h-48 bg-pink-300/30 rounded-full blur-3xl animate-[pulse_8s_ease-in-out_infinite]"></div>
+
+        <header className="w-full bg-white/60 backdrop-blur-md shadow-sm p-4 flex justify-between items-center border-b border-gray-200">
           <button
-            onClick={() => {
-              navigate("/");
-            }}
+            onClick={() => navigate("/")}
             className="text-gray-600 hover:text-gray-900 font-semibold text-sm px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400 transition"
             aria-label="Back"
           >
@@ -161,7 +162,6 @@ export function Room() {
 
           <div className="flex items-center space-x-2">
             <span className={`inline-block rounded-full w-4 h-4 ${isConnected ? "bg-green-700" : "bg-red-700"}`} />
-
             <h2 className="text-sm font-medium text-gray-600">
               Room ID: <span className="font-semibold text-gray-900">{roomName}</span>
             </h2>
@@ -169,14 +169,14 @@ export function Room() {
 
           <button
             onClick={() => setSettingsOpen(true)}
-            className="text-green-600 hover:text-green-800 font-semibold text-sm px-3 py-1 rounded-md border border-green-600 hover:bg-green-50 transition"
+            className="text-blue-600 hover:text-blue-800 font-semibold text-sm px-3 py-1 rounded-md border border-blue-600 hover:bg-blue-50 transition"
             aria-label="Game Settings"
           >
             Settings ⚙️
           </button>
         </header>
 
-        <div className="w-full bg-white shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
+        <div className="w-full bg-white/60 backdrop-blur-md shadow-md z-10 sticky top-0 p-4 flex justify-center border-b border-gray-200">
           <div className="max-w-md w-full">
             <WordBlock word={civilianWord} shouldHighlight={!!imposterWord} />
           </div>
@@ -187,14 +187,10 @@ export function Room() {
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
               Players<span className="text-sm font-normal text-gray-500"> ({players.length})</span>
             </h3>
-            <div className="bg-white shadow-md rounded-lg divide-y divide-gray-200">
+            <div className="bg-white/60 backdrop-blur-md shadow-lg rounded-xl divide-y divide-gray-200">
               {players
                 .slice()
-                .sort((a, b) => {
-                  if (a.name === hostName) return -1;
-                  if (b.name === hostName) return 1;
-                  return 0;
-                })
+                .sort((a, b) => (a.name === hostName ? -1 : b.name === hostName ? 1 : 0))
                 .map((player, index) => {
                   const shouldShowKick = isHost && player.name !== userName;
                   const isPlayerHost = player.name === hostName;
@@ -203,17 +199,17 @@ export function Room() {
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition"
+                      className="flex items-center justify-between px-4 py-3 hover:bg-white/30 transition rounded-lg"
                     >
-                      <span className="text-base font-medium text-gray-800 flex items-center">
+                      <span className="text-base font-medium text-gray-800 flex items-center space-x-2 mx-2">
                         {player.name}
                         {isPlayerHost && (
-                          <span className="ml-2 text-xs font-semibold text-white bg-blue-600 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-semibold text-white bg-blue-500 px-2 py-0.5 mx-2 rounded-full">
                             H
                           </span>
                         )}
                         {isUserName && (
-                          <span className="ml-2 text-xs font-semibold text-black border-black border-2 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-semibold text-black border-black border-2 px-2 py-0.5 mx-2 rounded-full">
                             You
                           </span>
                         )}
@@ -244,15 +240,18 @@ export function Room() {
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
               Spectators<span className="text-sm font-normal text-gray-500"> ({spectators.length})</span>
             </h3>
-            <div className="bg-white shadow-md rounded-lg divide-y divide-gray-200">
+            <div className="bg-white/60 backdrop-blur-md shadow-lg rounded-xl divide-y divide-gray-200">
               {spectators.map((player, index) => {
                 const isUserName = player.name === userName;
                 return (
-                  <div key={index} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition">
-                    <span className="text-base font-medium text-gray-800">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-white/30 transition rounded-lg"
+                  >
+                    <span className="text-base font-medium text-gray-800 flex items-center space-x-2">
                       {player.name}
                       {isUserName && (
-                        <span className="ml-2 text-xs font-semibold text-black border-black border-2 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-semibold text-black border-black border-2 px-2 py-0.5 mx-2 rounded-full">
                           You
                         </span>
                       )}
@@ -264,12 +263,12 @@ export function Room() {
           </section>
         </main>
 
-        <footer className="w-full bg-white shadow-inner p-4 sticky bottom-0 border-t border-gray-200">
+        <footer className="w-full bg-white/60 backdrop-blur-md shadow-inner p-4 sticky bottom-0 border-t border-gray-200">
           <div className="max-w-md mx-auto">
             {isHost && (
               <button
                 onClick={start}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-transform transform hover:scale-105"
               >
                 {isGameStarted ? "Next" : "Play"}
               </button>
