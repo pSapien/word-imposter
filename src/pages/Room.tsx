@@ -151,7 +151,7 @@ export function Room() {
         <header className="w-full bg-white shadow-sm p-4 flex justify-between items-center border-b border-gray-200">
           <button
             onClick={() => {
-              window.history.back();
+              navigate("/");
             }}
             className="text-gray-600 hover:text-gray-900 font-semibold text-sm px-3 py-1 rounded-md border border-gray-300 hover:border-gray-400 transition"
             aria-label="Back"
