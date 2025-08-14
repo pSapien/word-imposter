@@ -18,7 +18,7 @@ import profession from "./words/profession.js";
 import sports from "./words/sports.js";
 import technology from "./words/technology.js";
 import vehicle from "./words/vehicle.js";
-
+import nepali from "./words/nepali.js";
 
 const WordPairsCategory = [
   { label: "Abstract", value: "abstract", words: abstract },
@@ -41,6 +41,7 @@ const WordPairsCategory = [
   { label: "Sports", value: "sports", words: sports },
   { label: "Technology", value: "technology", words: technology },
   { label: "Vehicle", value: "vehicle", words: vehicle },
+  { label: "Nepali", value: "nepali", words: nepali },
 ];
 
 export function getWordsList() {

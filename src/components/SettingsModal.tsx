@@ -22,7 +22,7 @@ const categories = [
   { label: "Synonyms", value: "synonms" },
   { label: "Animal", value: "animal" },
   { label: "Culinary", value: "culinary" },
-  { label: "History", value: "history"},
+  { label: "History", value: "history" },
   { label: "Music", value: "music" },
   { label: "People", value: "people" },
   { label: "Nature", value: "nature" },
@@ -30,6 +30,7 @@ const categories = [
   { label: "Sports", value: "sports" },
   { label: "Technology", value: "technology" },
   { label: "Vehicle", value: "vehicle" },
+  { label: "Nepali", value: "nepali" },
 ];
 
 export function SettingsModal({ onClose, state, onChange }: SettingsModalProps) {
