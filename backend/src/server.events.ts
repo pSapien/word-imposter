@@ -1,5 +1,5 @@
-import { Roles, type ServerResponseEvents } from "@imposter/shared";
-import type { EventHandlerMap, Game, Player, Room } from "./server.type.js";
+import { Roles, type ServerResponseEvents, type ServerErrorEvent, ErrorCodes } from "@imposter/shared";
+import type { EventHandlerMap, Game, Room } from "./server.type.js";
 import { getRandomWordPair } from "./wordpairs.js";
 import { random, randomArr } from "./utils";
 
@@ -12,12 +12,18 @@ export const eventHandlers: EventHandlerMap = {
   ping: (ws) => {
     sendResponse(ws, { type: "pong", payload: {} });
   },
+
   JoinRoomRequestEvent: (ws, payload) => {
     const { playerName, role, roomName } = payload;
     console.log("JoinRoomRequestEvent:", playerName, role, roomName);
 
-    if (!playerName?.trim() || !roomName?.trim()) {
-      console.warn("Invalid player name or room name");
+    if (!playerName?.trim()) {
+      sendError(ws, { code: ErrorCodes.Auth_InvalidProfile, message: "Invalid User Name" });
+      return;
+    }
+
+    if (!roomName?.trim()) {
+      sendError(ws, { code: ErrorCodes.Room_Invalid, message: "Invalid Room Name" });
       return;
     }
 
@@ -53,11 +59,26 @@ export const eventHandlers: EventHandlerMap = {
     const { playerName, playerNameToBeKicked, roomName } = payload;
     const room = rooms.get(roomName);
 
-    if (!room) return console.warn(`Room ${roomName} not found`);
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
 
-    if (room.hostName !== playerName) return console.warn(`Player ${playerName} is not the host of room ${roomName}`);
+    if (room.hostName !== playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: "Host is allowed to kick players",
+      });
+      return;
+    }
 
-    if (playerNameToBeKicked === playerName) return console.warn("Host cannot kick themselves");
+    if (playerNameToBeKicked === playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: `Host cannot kick themselves`,
+      });
+      return;
+    }
 
     const playerIndex = room.players.findIndex((p) => p.name === playerNameToBeKicked);
     const spectatorIndex = room.spectators.findIndex((s) => s.name === playerNameToBeKicked);
@@ -83,9 +104,18 @@ export const eventHandlers: EventHandlerMap = {
     const { wordCategories, imposterCount } = gameSettings;
     const room = rooms.get(roomName);
 
-    if (!room) return console.warn(`Room ${roomName} not found`);
-    if (room.hostName !== playerName) return console.warn(`Player ${playerName} is not the host of room ${roomName}`);
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
 
+    if (room.hostName !== playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: "Host is allowed to start the game",
+      });
+      return;
+    }
     const maxImposters = Math.min(Math.floor(room.players.length / 2), imposterCount);
     const imposterPlayers = randomArr(room.players, maxImposters);
     const randomWordCategory = random(wordCategories);
@@ -116,7 +146,12 @@ export const eventHandlers: EventHandlerMap = {
     const room = rooms.get(roomName);
 
     if (!room) {
-      console.warn(`Room ${roomName} not found`);
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
+
+    if (!isPlayerInRoom(room, playerName)) {
+      sendError(ws, { code: ErrorCodes.Room_PlayerNotFound, message: `Player Not Found` });
       return;
     }
 
@@ -199,6 +234,14 @@ export const eventHandlers: EventHandlerMap = {
 function sendResponse(ws: Bun.WebSocket, response: ServerResponseEvents): void {
   try {
     ws.send(JSON.stringify(response));
+  } catch (error) {
+    console.error("Failed to send response:", error);
+  }
+}
+
+function sendError(ws: Bun.WebSocket, payload: ServerErrorEvent["payload"]) {
+  try {
+    ws.send(JSON.stringify({ type: "ServerErrorEvent", payload }));
   } catch (error) {
     console.error("Failed to send response:", error);
   }
