@@ -1,4 +1,4 @@
-import type { ClientRequestEvents, ServerResponseEvents } from "@imposter/shared";
+import type { ClientRequestEvents, ImposterGameState } from "@imposter/shared";
 
 export type Player = {
   name: string;
@@ -8,21 +8,14 @@ export type Spectator = {
   name: string;
 };
 
-export type Game = {
-  imposterNames: string[];
-  round: string;
-  startedAt: number;
-  imposterWord: string;
-  civilianWord: string;
-  wordCategories: string[];
-};
+export type Game = ImposterGameState;
 
 export type Room = {
   roomName: string;
   hostName: string;
   players: Player[];
   spectators: Spectator[];
-  games: Game[];
+  games: ImposterGameState[];
 };
 
 export type EventHandlerMap = {

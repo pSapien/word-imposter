@@ -124,10 +124,14 @@ export const eventHandlers: EventHandlerMap = {
     const newGame: Game = {
       imposterNames: imposterPlayers.map((i) => i.name),
       wordCategories: wordCategories,
-      round: (room.games.length + 1).toString(),
+      round: room.games.length + 1,
       startedAt: Date.now(),
       imposterWord,
       civilianWord,
+      stage: "discussion",
+      votes: {},
+      summary: null,
+      eliminated: [],
     };
 
     room.games.push(newGame);
@@ -188,6 +192,10 @@ export const eventHandlers: EventHandlerMap = {
         imposterNames: currentGame.imposterNames,
         imposterWord: currentGame.imposterWord,
         civilianWord: currentGame.civilianWord,
+        stage: currentGame.stage,
+        votes: currentGame.votes,
+        summary: currentGame.summary,
+        eliminated: currentGame.eliminated,
         settings: {
           wordCategories: currentGame.wordCategories,
           imposterCount: currentGame.imposterNames.length,
@@ -199,6 +207,10 @@ export const eventHandlers: EventHandlerMap = {
         imposterNames: [],
         imposterWord: "",
         civilianWord: currentGame.imposterWord,
+        stage: currentGame.stage,
+        votes: currentGame.votes,
+        summary: currentGame.summary,
+        eliminated: currentGame.eliminated,
         settings: {
           wordCategories: currentGame.wordCategories,
           imposterCount: currentGame.imposterNames.length,
@@ -210,6 +222,10 @@ export const eventHandlers: EventHandlerMap = {
         imposterNames: [],
         imposterWord: "",
         civilianWord: currentGame.civilianWord,
+        stage: currentGame.stage,
+        votes: currentGame.votes,
+        summary: currentGame.summary,
+        eliminated: currentGame.eliminated,
         settings: {
           wordCategories: currentGame.wordCategories,
           imposterCount: currentGame.imposterNames.length,
@@ -226,6 +242,206 @@ export const eventHandlers: EventHandlerMap = {
         ...baseRoomInfo,
         game: gameInfo,
       },
+    });
+  },
+
+  StartVoteRequestEvent: (ws, payload) => {
+    const { roomName, playerName } = payload;
+    const room = rooms.get(roomName);
+
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
+
+    if (room.hostName !== playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: "Host is allowed to start voting",
+      });
+      return;
+    }
+
+    const game = getCurrentGame(room.games);
+    if (!game) {
+      sendError(ws, {
+        code: ErrorCodes.Game_NotFound,
+        message: "Host is allowed to start the game",
+      });
+      return;
+    }
+
+    if (game.stage !== "discussion") {
+      sendError(ws, {
+        code: ErrorCodes.Game_InvalidEvent,
+        message: "Vote is only to be ready when discussion stage",
+      });
+      return;
+    }
+
+    game.stage = "voting";
+
+    broadcastToRoom(room, {
+      type: "CastVoteResponseEvent",
+      payload: { roomName },
+    });
+  },
+
+  CastVoteRequestEvent: (ws, payload) => {
+    const { roomName, voteeName, voterName } = payload;
+    const room = rooms.get(roomName);
+
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
+
+    const game = getCurrentGame(room.games);
+    if (!game) {
+      sendError(ws, {
+        code: ErrorCodes.Game_NotFound,
+        message: "Host is allowed to start the game",
+      });
+      return;
+    }
+
+    if (game.stage !== "voting") {
+      sendError(ws, {
+        code: ErrorCodes.Game_InvalidEvent,
+        message: "Vote is only to be ready when discussion stage",
+      });
+      return;
+    }
+
+    if (!room.players.some((p) => p.name === voterName)) {
+      sendError(ws, {
+        code: ErrorCodes.Game_InvalidEvent,
+        message: "Player is not allowed to vote",
+      });
+      return;
+    }
+
+    if (voteeName && !room.players.some((p) => p.name === voteeName)) {
+      sendError(ws, {
+        code: ErrorCodes.Game_InvalidEvent,
+        message: "Invalid Player To Vote",
+      });
+      return;
+    }
+
+    game.votes[voterName] = voteeName;
+
+    broadcastToRoom(room, {
+      type: "CastVoteResponseEvent",
+      payload: { roomName },
+    });
+  },
+
+  FinishVotingRequestEvent: (ws, payload) => {
+    const { roomName, playerName } = payload;
+    const room = rooms.get(roomName);
+
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
+
+    if (room.hostName !== playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: "Host is allowed to end voting",
+      });
+      return;
+    }
+
+    const game = getCurrentGame(room.games);
+    if (!game) {
+      sendError(ws, {
+        code: ErrorCodes.Game_NotFound,
+        message: "Game is not found",
+      });
+      return;
+    }
+
+    if (game.stage !== "voting") {
+      sendError(ws, {
+        code: ErrorCodes.Game_InvalidEvent,
+        message: "Vote is already finished or not started",
+      });
+      return;
+    }
+
+    game.stage = "round_finished";
+
+    const votedOutPlayers = getVotedOutPlayers(game.votes);
+
+    /** we have a definite voted out player */
+    if (votedOutPlayers.length === 1) {
+      const imposterSuspectName = votedOutPlayers[0];
+      game.eliminated.push(imposterSuspectName);
+
+      if (game.imposterNames.includes(imposterSuspectName)) {
+        /** we have found an imposter */
+        game.summary = {
+          isImposterFound: true,
+          imposterWord: game.imposterWord,
+          imposterSuspectName: imposterSuspectName,
+        };
+      } else {
+        game.summary = {
+          isImposterFound: false,
+          imposterWord: "",
+          imposterSuspectName: imposterSuspectName,
+        };
+      }
+    } else {
+      /** the score is tied */
+      game.summary = {
+        isImposterFound: false,
+        imposterWord: "",
+        imposterSuspectName: "",
+      };
+    }
+
+    broadcastToRoom(room, {
+      type: "VotingRoundFinishedResponseEvent",
+      payload: { roomName },
+    });
+  },
+
+  StartNextRoundRequestEvent: (ws, payload) => {
+    const { roomName, playerName } = payload;
+    const room = rooms.get(roomName);
+
+    if (!room) {
+      sendError(ws, { code: ErrorCodes.Room_NotFound, message: `Room of ${roomName} not found` });
+      return;
+    }
+
+    if (room.hostName !== playerName) {
+      sendError(ws, {
+        code: ErrorCodes.Room_UnauthorizedPermission,
+        message: "Host is allowed to start voting",
+      });
+      return;
+    }
+
+    const game = getCurrentGame(room.games);
+    if (!game) {
+      sendError(ws, {
+        code: ErrorCodes.Game_NotFound,
+        message: "Host is allowed to start the game",
+      });
+      return;
+    }
+
+    game.stage = "discussion";
+    game.votes = {};
+    game.summary = null;
+
+    broadcastToRoom(room, {
+      type: "StartNextRoundResponseEvent",
+      payload: { roomName },
     });
   },
 };
@@ -306,4 +522,28 @@ export function handlePlayerDisconnect(ws: Bun.WebSocket): void {
       }
     }
   }
+}
+
+function getVotedOutPlayers(votes: Record<string, string>): string[] {
+  const voteCounts: Record<string, number> = {};
+  let skips = 0;
+
+  Object.values(votes).forEach((votee) => {
+    if (votee) {
+      voteCounts[votee] = (voteCounts[votee] || 0) + 1;
+    } else {
+      skips++;
+    }
+  });
+
+  if (Object.keys(voteCounts).length === 0) return [];
+
+  const maxVotes = Math.max(...Object.values(voteCounts));
+
+  if (skips >= maxVotes) return [];
+  if (maxVotes === 0) return [];
+
+  return Object.entries(voteCounts)
+    .filter(([_, count]) => count === maxVotes)
+    .map(([player]) => player);
 }
