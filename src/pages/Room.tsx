@@ -1,7 +1,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router";
-import { type Player, type GameSettings, ErrorCodes } from "../../shared";
+import { type Player, type GameSettings, ErrorCodes, type RolesTypes, Roles } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
@@ -35,6 +35,7 @@ export function Room() {
   const [isConnecting, setIsConnecting] = useState(true);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [userName] = useLocalStorage<string>(Constants.StorageKeys.Name);
+  const [selectedRole] = useLocalStorage<RolesTypes>(Constants.StorageKeys.SelectedRole);
   const [hostGameSettings, setHostGameSettings] = useLocalStorage<GameSettings>(Constants.StorageKeys.GameSettings, {
     wordCategories: ["legacy"],
     imposterCount: 1,
@@ -83,6 +84,16 @@ export function Room() {
       if (payload.code === ErrorCodes.Room_NotFound) {
         toast.error("The room has not been hosted yet!");
         return navigate("/");
+      }
+
+      if (payload.code === ErrorCodes.Room_PlayerNotFound && userName && selectedRole) {
+        const role = selectedRole === Roles.HOST ? Roles.PLAYER : selectedRole;
+        send({
+          type: "JoinRoomRequestEvent",
+          payload: { playerName: userName, roomName, role },
+        });
+        updateRoom();
+        return;
       }
 
       toast.error(payload.message);
