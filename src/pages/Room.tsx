@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useParams } from "react-router";
-import type { Player, GameSettings } from "../../shared";
+import toast from "react-hot-toast";
+import { useNavigate, useParams } from "react-router";
+import { type Player, type GameSettings, ErrorCodes } from "../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { useSocket } from "../context";
 import { Constants } from "../constants.ts";
@@ -45,6 +46,7 @@ export function Room() {
   const roomName = queryParams.roomName as string;
   const isHost = userName === hostName;
   const isConnected = isConnecting === false;
+  const navigate = useNavigate();
 
   const send = useSocket({
     onOpen: () => {
@@ -76,6 +78,14 @@ export function Room() {
           imposterCount: payload.game?.settings?.imposterCount ?? 0,
         },
       });
+    },
+    ServerErrorEvent: (payload) => {
+      if (payload.code === ErrorCodes.Room_NotFound) {
+        toast.error("The room has not been hosted yet!");
+        return navigate("/");
+      }
+
+      toast.error(payload.message);
     },
   });
 

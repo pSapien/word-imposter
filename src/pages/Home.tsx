@@ -1,10 +1,10 @@
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { useLocalStorage } from "@uidotdev/usehooks";
+import { useNavigate } from "react-router";
 import { Roles } from "../../shared";
 import type { RolesTypes } from "../../shared";
-import { useLocalStorage } from "@uidotdev/usehooks";
-
 import { useSocket } from "../context";
-import { useNavigate } from "react-router";
-import { useState } from "react";
 import { Constants } from "../constants.ts";
 import { CheckboxButton } from "../components";
 
@@ -22,19 +22,25 @@ export function Home() {
   const navigate = useNavigate();
 
   const socketSend = useSocket({
-    onOpen: () => console.log("Socket connected"),
     onClose: () => console.log("Socket disconnected"),
-    onError: (error) => console.error("Socket error:", error),
+    onError: (error) => {
+      setIsLoading(false);
+      toast.error(error.message);
+    },
     JoinRoomResponseEvent: (payload) => {
       setIsLoading(false);
       navigate(`/room/${payload.roomName}`);
     },
+    ServerErrorEvent: (payload) => {
+      setIsLoading(false);
+      toast.error(payload.message);
+    },
   });
 
   const handleContinue = () => {
-    if (!selectedRole) return alert("Please select a role.");
-    if (name.trim() === "") return alert("Please enter your name.");
-    if (roomName.trim() === "") return alert("Please enter a room name");
+    if (!selectedRole) return toast.error("Please select a role");
+    if (name.trim() === "") return toast.error("Please enter your name.");
+    if (roomName.trim() === "") return toast.error("Please enter a room name");
 
     setIsLoading(true);
     socketSend({

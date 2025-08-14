@@ -104,6 +104,28 @@ interface PongResponseEvent {
   payload: {};
 }
 
+export const ErrorCodes = Object.freeze({
+  /** room related error, should be prefixed by room */
+  Room_NotFound: "room.not_found",
+  Room_PlayerNotFound: "room.player_not_found",
+  Room_Invalid: "room.invalid",
+  Room_UnauthorizedPermission: "room.unauthorized_permission",
+
+  /** auth related errors, should be prefixed by auth */
+  Auth_InvalidProfile: "auth.invalid_profile",
+});
+
+type ObjValue<T extends Object> = T[keyof T];
+type ErrorCodesValue = ObjValue<typeof ErrorCodes>;
+
+export interface ServerErrorEvent {
+  type: "ServerErrorEvent";
+  payload: {
+    code: ErrorCodesValue;
+    message: string;
+  };
+}
+
 export type ClientRequestEvents =
   | JoinRoomRequestEvent
   | StartGameRequestEvent
@@ -117,4 +139,5 @@ export type ServerResponseEvents =
   | GameStartedResponseEvent
   | GetRoomInfoResponseEvent
   | PlayerKickedResponseEvent
-  | PongResponseEvent;
+  | PongResponseEvent
+  | ServerErrorEvent;

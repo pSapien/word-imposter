@@ -17,6 +17,7 @@
     "@uidotdev/usehooks": "^2.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
     "react-router": "^7.7.1",
     "react-router-dom": "^7.7.1",
     "reconnecting-websocket": "^4.4.0"
