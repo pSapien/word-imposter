@@ -1,12 +1,10 @@
 export const Constants = {
   StorageKeys: {
     Name: "$$name$$",
-    RoomId: "$$roomId$$",
-    SelectedRole: "$$selectedRole$$",
-    GameSettings: "$$game_settings$$",
+    SessionProfile: "$$userId",
   },
-  Endpoint: "https://667e09f9f4d7.ngrok-free.app",
-  PingInterval: 1000 * 5,
+  Endpoint: "ws://localhost:3000",
+  PingInterval: 1000 * 30,
   ShowDebugLogs: true,
   ToastShowDuration: 3000,
 };

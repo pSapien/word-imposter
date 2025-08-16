@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -20,10 +19,15 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
+      "@app/utils": ["./src/utils"],
+      "@app/components": ["./src/components"],
+      "@app/socket": ["./src/context/SocketContext"],
+      "@app/pages": ["./src/pages"],
+      "@app/games": ["./src/games"],
+      "@app/constants": ["./src/constants"], 
       "@imposter/shared": ["./shared"],
     }
   },
