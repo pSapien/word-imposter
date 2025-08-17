@@ -239,7 +239,7 @@ export function Room() {
                     {isHost && player.name !== userName && (
                       <button
                         onClick={() => kickPlayer(player)}
-                        className="text-red-500 hover:text-red-700 text-lg px-2 py-1"
+                        className="text-red-500 hover:text-red-700"
                       >
                         ⛔
                       </button>
@@ -277,7 +277,7 @@ export function Room() {
                     {isHost && player.name !== userName && (
                       <button
                         onClick={() => kickPlayer(player)}
-                        className="text-red-500 hover:text-red-700 text-lg px-2 py-1"
+                        className="text-red-500 hover:text-red-700"
                       >
                         ⛔
                       </button>
