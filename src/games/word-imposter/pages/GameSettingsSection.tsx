@@ -1,7 +1,6 @@
-import { Card, CardHeader, CardContent } from "../../../components/ui/Card.tsx";
-import { Input } from "../../../components/ui/Input.tsx";
 import { WORD_CATEGORIES } from "../config.ts";
-import { cn } from "../../../utils/index.ts";
+import { Input, Card, CardHeader, CardContent } from "@app/components";
+import { cn } from "@app/utils";
 
 export type GameSettingState = {
   wordCategories: string[];

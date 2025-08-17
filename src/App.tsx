@@ -4,6 +4,8 @@ import { SocketProvider } from "./context/SocketContext";
 import { GameSelectionPage } from "./pages/GameSelectionPage";
 import { CodeWordsSetupPage } from "./games/codewords/pages/CodeWordsSetupPage";
 import { WordImposterRoom, WordImposterGame } from "./games/word-imposter";
+import { Constants } from "./constants.ts";
+import { FloatingConsoleLogs } from "@app/components";
 // Import future game rooms here
 // import { CodeWordsRoom } from "./games/codewords/pages/CodeWordsRoom";
 
@@ -46,6 +48,7 @@ export default function App() {
             },
           }}
         />
+        {Constants.ShowDebugLogs && <FloatingConsoleLogs />}
       </HashRouter>
     </SocketProvider>
   );

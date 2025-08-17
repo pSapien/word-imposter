@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Button } from "../../../components/ui/Button";
-import { useSocket, useSocketHandler } from "../../../context/SocketContext";
-import { WordCard } from "../components";
-import { cn } from "../../../utils";
 import type { Room, WordImposterState } from "../../../../shared";
-import { Card, CardContent } from "../../../components/ui/Card.tsx";
-import { PlayerList } from "../../../components/game/PlayerList.tsx";
-import { GameSettingsSection, type GameSettingState } from "./GameSettingsSection.tsx";
-import { FooterSection } from "./FooterSection.tsx";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Constants } from "@app/constants";
+
+import { WordCard } from "../components";
+import { FooterSection } from "./FooterSection.tsx";
+import { GameSettingsSection, type GameSettingState } from "./GameSettingsSection.tsx";
+import { Card, CardContent, Button, PlayerList } from "@app/components";
+import { useSocket, useSocketHandler } from "@app/socket";
+import { cn } from "@app/utils";
 
 export function WordImposterGame() {
   const params = useParams<{ roomCode: string }>();

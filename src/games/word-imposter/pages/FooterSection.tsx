@@ -1,5 +1,5 @@
 import type { WordImposterState } from "../../../../shared/src/index.ts";
-import { Button } from "../../../components/ui/Button.tsx";
+import { Button } from "@app/components";
 
 type Props = {
   stage: WordImposterState["stage"] | "";

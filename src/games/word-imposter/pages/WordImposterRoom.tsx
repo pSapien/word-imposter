@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { Card, CardContent, CardHeader } from "../../../components/ui/Card.tsx";
-import { Button } from "../../../components/ui/Button.tsx";
-import { Input } from "../../../components/ui/Input.tsx";
 import { useSocket, useSocketHandler } from "@app/socket";
-import { getGameInfo } from "../../game-registry.ts";
 import { cn } from "@app/utils";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Constants } from "@app/constants";
+import { Button, Input, Card, CardContent, CardHeader } from "@app/components";
+import { getGameInfo } from "../../game-registry.ts";
 
 export function WordImposterRoom() {
   const navigate = useNavigate();
