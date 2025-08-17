@@ -1,5 +1,13 @@
-import { AuthenticatedRequest, RoomJoinedResponse, ServerResponseEvents, StartGameRequest } from "@imposter/shared";
-import { RoomService, WebSocketManager, SessionService, Room } from "../../core";
+import {
+  AuthenticatedRequest,
+  GameActionRequest,
+  GameStateRequest,
+  RoomJoinedResponse,
+  RoomMember,
+  ServerResponseEvents,
+  StartGameRequest,
+} from "@imposter/shared";
+import { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "../../core";
 import { WordImposterGameEngine } from "../../games/imposter/WordImposterGame.js";
 
 export interface CreateRoomRequest {
@@ -39,7 +47,7 @@ export class RoomHandlers {
           members: room.members.map((r) => {
             return {
               displayName: r.displayName,
-              id: r.profileId,
+              id: r.id,
               role: r.role,
             };
           }),
@@ -62,6 +70,7 @@ export class RoomHandlers {
       const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.join(payload.roomCode, session.profile, payload.role || "player");
       this.broadcastRoomJoined(room);
+      if (room.currentGame) this.handleGetGameState(req, payload);
     } catch (error) {
       this.wsManager.send(req.connectionId, {
         type: "error",
@@ -85,7 +94,7 @@ export class RoomHandlers {
 
   handleStartGame = (req: AuthenticatedRequest, payload: StartGameRequest["payload"]) => {
     try {
-      const session = this.services.session.getSession(req.connectionId);
+      const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.getRoomByMember(session.profile.id);
 
       if (room.hostId && room.hostId !== session.profile.id) throw new Error("Only host can start games");
@@ -96,7 +105,6 @@ export class RoomHandlers {
           game = new WordImposterGameEngine({
             minPlayers: 3,
             maxPlayers: 20,
-            allowSpectators: true,
             settings: payload.settings,
           });
           break;
@@ -104,31 +112,11 @@ export class RoomHandlers {
           throw new Error("Unknown game type");
       }
 
-      room.members
-        .filter((m) => m.role === "player")
-        .forEach((member) => {
-          game.joinPlayer({
-            profileId: member.profileId,
-            displayName: member.displayName,
-            role: "player",
-          });
-        });
-
-      room.members
-        .filter((m) => m.role === "spectator")
-        .forEach((member) => {
-          game.joinPlayer({
-            profileId: member.profileId,
-            displayName: member.displayName,
-            role: "spectator",
-          });
-        });
-
-      const result = game.start();
-      if (!result.success) throw new Error(result.error || "Failed to start game");
-
-      this.services.room.setGame(room.roomId, game);
-      this.broadcastGameUpdate(room.roomId, game);
+      const result = game.startGame(room.members.slice());
+      if (result) {
+        this.services.room.setGame(room.roomId, game);
+        this.broadcastGameState(room.currentGame, room.members);
+      }
     } catch (error) {
       this.wsManager.send(req.connectionId, {
         type: "error",
@@ -140,7 +128,54 @@ export class RoomHandlers {
     }
   };
 
-  private broadcastRoomJoined(room: Room) {
+  handleGameAction = (req: AuthenticatedRequest, payload: GameActionRequest<any>["payload"]) => {
+    try {
+      const session = this.services.session.getSession(req.sessionId);
+      const room = this.services.room.getRoomByMember(session.profile.id);
+
+      if (!room.currentGame) throw new Error("Invalid");
+
+      room.currentGame.validateGameAction(session.profile.id, payload);
+      room.currentGame.processAction(session.profile.id, payload);
+      this.broadcastGameState(room.currentGame, room.members);
+    } catch (err) {
+      console.log("HandleGameAction error:", err);
+      this.wsManager.send(req.connectionId, {
+        type: "error",
+        payload: {
+          code: "game.action_failed",
+          message: err.message,
+        },
+      });
+    }
+  };
+
+  handleGetGameState = (req: AuthenticatedRequest, payload: GameStateRequest<any>["payload"]) => {
+    try {
+      const session = this.services.session.getSession(req.sessionId);
+      const room = this.services.room.getRoomByMember(session.profile.id);
+      const member = room.members.find((m) => m.id === session.profile.id);
+
+      if (!room.currentGame || !member) throw new Error("Invalid");
+
+      const state = room.currentGame.getPlayerViewState(member);
+      this.wsManager.send(session.connectionId, {
+        type: "game_state",
+        payload: { state },
+      });
+    } catch (err) {
+      console.log("handleGetGameState error:", err);
+      this.wsManager.send(req.connectionId, {
+        type: "error",
+        payload: {
+          code: "game.state_failed",
+          message: err.message,
+        },
+      });
+    }
+  };
+
+  private broadcastRoomJoined(room: GameRoom) {
     const event: RoomJoinedResponse = {
       type: "room_joined",
       payload: {
@@ -150,20 +185,30 @@ export class RoomHandlers {
         members: room.members.map((r) => {
           return {
             displayName: r.displayName,
-            id: r.profileId,
+            id: r.id,
             role: r.role,
           };
         }),
       },
     } as const;
-    room.members
-      .map((member) => this.services.session.getSessionByProfileId(member.profileId))
-      .map((session) => session.connectionId)
-      .forEach((connectionId) => this.wsManager.send(connectionId, event));
+
+    for (const member of room.members) {
+      const sessionProfile = this.services.session.getSessionByProfileId(member.id);
+      this.wsManager.send(sessionProfile.connectionId, event);
+    }
   }
 
-  private broadcastGameUpdate(roomId: string, game: any) {
-    // Implementation to broadcast game state to all room members
-    // This would send personalized game views to each player
+  private broadcastGameState(game: GameEngine<any>, members: RoomMember[]) {
+    for (const member of members) {
+      const sessionProfile = this.services.session.getSessionByProfileId(member.id);
+      const state = game.getPlayerViewState(member);
+
+      this.wsManager.send(sessionProfile.connectionId, {
+        type: "game_state",
+        payload: {
+          state,
+        },
+      });
+    }
   }
 }

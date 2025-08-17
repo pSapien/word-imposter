@@ -5,5 +5,3 @@
 
 export { WordImposterGame } from "./pages/WordImposterGame";
 export { WordImposterRoom } from "./pages/WordImposterRoom";
-
-export type { WordImposterGameState, WordImposterSettings, WordImposterAction } from "./types";

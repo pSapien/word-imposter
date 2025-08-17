@@ -46,6 +46,11 @@ export class MessageRouter {
       this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleStartGame(req, payload))
     );
 
+    this.routes.set(
+      "get_game_state",
+      this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleGetGameState(req, payload))
+    );
+
     // this.routes.set(
     //   "game_action",
     //   this.authMiddleware.requireAuth((req, payload) => this.gameHandlers.handleGameAction(req.connectionId, payload))

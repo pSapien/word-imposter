@@ -6,6 +6,8 @@ export interface GameAction<T extends { playerId: string }> {
 }
 
 export interface GameEngine<S extends {}> {
+  startGame(member: RoomMember[]): boolean;
   processAction(playerId: string, action: GameAction<any>): void;
-  getPersonalizedState(member: RoomMember): S;
+  validateGameAction(playerId: string, action: GameAction<any>): void;
+  getPlayerViewState(member: RoomMember): S;
 }

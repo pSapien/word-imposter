@@ -1,21 +1,15 @@
 import { v4 as uuid } from "uuid";
-import type { BaseGame } from "../GameEngine.js";
+import type { GameEngine } from "../GameEngine.js";
 import type { GuestProfile } from "./SessionService.js";
+import { RoomMember } from "@imposter/shared";
 
-export interface RoomMember {
-  profileId: string;
-  displayName: string;
-  role: "host" | "player" | "spectator";
-  joinedAt: number;
-}
-
-export interface Room {
+export interface GameRoom {
   roomId: string;
   roomCode: string;
   name: string;
   hostId: string;
   members: RoomMember[];
-  currentGame?: BaseGame;
+  currentGame?: GameEngine<any>;
   gameHistory: string[];
   createdAt: number;
   settings: {
@@ -26,23 +20,22 @@ export interface Room {
 }
 
 export class RoomService {
-  private rooms = new Map<string, Room>();
+  private rooms = new Map<string, GameRoom>();
   private roomCodes = new Map<string, string>();
   private memberToRoom = new Map<string, string>();
 
-  create(host: GuestProfile, roomName: string): Room {
+  create(host: GuestProfile, roomName: string): GameRoom {
     const roomCode = this.generateRoomCode();
-    const room: Room = {
+    const room: GameRoom = {
       roomId: uuid(),
       roomCode,
       name: roomName.trim(),
       hostId: host.id,
       members: [
         {
-          profileId: host.id,
+          id: host.id,
           displayName: host.displayName,
           role: "host",
-          joinedAt: Date.now(),
         },
       ],
       gameHistory: [],
@@ -61,14 +54,14 @@ export class RoomService {
     return room;
   }
 
-  join(roomCode: string, profile: GuestProfile, role: "player" | "spectator" = "player"): Room {
+  join(roomCode: string, profile: GuestProfile, role: "player" | "spectator" = "player"): GameRoom {
     const roomId = this.roomCodes.get(roomCode);
     if (!roomId) throw new Error("Room not found");
 
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
-    if (room.members.some((m) => m.profileId === profile.id)) {
+    if (room.members.some((m) => m.id === profile.id)) {
       return room;
     }
 
@@ -81,10 +74,9 @@ export class RoomService {
     }
 
     const member: RoomMember = {
-      profileId: profile.id,
+      id: profile.id,
       displayName: profile.displayName,
       role,
-      joinedAt: Date.now(),
     };
 
     room.members.push(member);
@@ -93,21 +85,15 @@ export class RoomService {
     return room;
   }
 
-  leave(profileId: string): Room | null {
+  leave(profileId: string): GameRoom | null {
     const roomId = this.memberToRoom.get(profileId);
-    if (!roomId) {
-      return null;
-    }
+    if (!roomId) return null;
 
     const room = this.rooms.get(roomId);
-    if (!room) {
-      return null;
-    }
+    if (!room) return null;
 
-    const memberIndex = room.members.findIndex((m) => m.profileId === profileId);
-    if (memberIndex === -1) {
-      return null;
-    }
+    const memberIndex = room.members.findIndex((m) => m.id === profileId);
+    if (memberIndex === -1) return null;
 
     const leavingMember = room.members[memberIndex];
     room.members.splice(memberIndex, 1);
@@ -118,7 +104,7 @@ export class RoomService {
       const nextHost = room.members.find((m) => m.role === "player");
       if (nextHost) {
         nextHost.role = "host";
-        room.hostId = nextHost.profileId;
+        room.hostId = nextHost.id;
       } else if (room.members.length === 0) {
         this.rooms.delete(roomId);
         this.roomCodes.delete(room.roomCode);
@@ -129,34 +115,26 @@ export class RoomService {
     return room;
   }
 
-  getRoomByCode(roomCode: string): Room | null {
+  getRoomByCode(roomCode: string): GameRoom | null {
     const roomId = this.roomCodes.get(roomCode);
     return roomId ? this.rooms.get(roomId) || null : null;
   }
 
-  getRoomByMember(profileId: string): Room | null {
+  getRoomByMember(profileId: string): GameRoom | null {
     const roomId = this.memberToRoom.get(profileId);
     return roomId ? this.rooms.get(roomId) || null : null;
   }
 
-  kickMember(hostId: string, roomCode: string, targetProfileId: string): Room {
+  kickMember(hostId: string, roomCode: string, targetProfileId: string): GameRoom {
     const room = this.getRoomByCode(roomCode);
-    if (!room) {
-      throw new Error("Room not found");
-    }
+    if (!room) throw new Error("Room not found");
 
-    if (room.hostId !== hostId) {
-      throw new Error("Only host can kick members");
-    }
+    if (room.hostId !== hostId) throw new Error("Only host can kick members");
 
-    if (targetProfileId === hostId) {
-      throw new Error("Host cannot kick themselves");
-    }
+    if (targetProfileId === hostId) throw new Error("Host cannot kick themselves");
 
-    const memberIndex = room.members.findIndex((m) => m.profileId === targetProfileId);
-    if (memberIndex === -1) {
-      throw new Error("Member not found");
-    }
+    const memberIndex = room.members.findIndex((m) => m.id === targetProfileId);
+    if (memberIndex === -1) throw new Error("Member not found");
 
     room.members.splice(memberIndex, 1);
     this.memberToRoom.delete(targetProfileId);
@@ -164,7 +142,7 @@ export class RoomService {
     return room;
   }
 
-  setGame(roomId: string, game: BaseGame): void {
+  setGame(roomId: string, game: GameEngine<any>): void {
     const room = this.rooms.get(roomId);
     if (!room) {
       throw new Error("Room not found");

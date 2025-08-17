@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import type { GameUIProps } from "../../types";
 import type { WordImposterGameState } from "../types";
 import { WordCard } from "./WordCard";

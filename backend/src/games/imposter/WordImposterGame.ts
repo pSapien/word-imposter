@@ -31,7 +31,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     };
   }
 
-  addPlayer(member: RoomMember): boolean {
+  private addPlayer(member: RoomMember): boolean {
     if (this.players.length >= this.config.maxPlayers) return false;
 
     const existingPlayer = this.players.find((p) => p.profileId === member.id);
@@ -48,7 +48,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     return true;
   }
 
-  removePlayer(profileId: string): boolean {
+  private removePlayer(profileId: string): boolean {
     const playerIndex = this.players.findIndex((p) => p.profileId === profileId);
     if (playerIndex === -1) return false;
 
@@ -69,7 +69,11 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     return true;
   }
 
-  startGame(): boolean {
+  startGame(members: RoomMember[]): boolean {
+    members.forEach((member) => {
+      this.addPlayer(member);
+    });
+
     const activePlayers = this.players.filter((p) => p.role !== "spectator");
     if (activePlayers.length < this.config.minPlayers) return false;
 
@@ -78,96 +82,34 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     return true;
   }
 
-  /** Process a player's action in the game */
-  processAction(playerId: string, action: GameAction<any>): void {
-    const player = this.players.find((p) => p.profileId === playerId);
-    if (!player || player.isEliminated) return;
-
-    switch (action.type) {
-      case "start_game":
-        if (player.role === "host" && this.status === "waiting") {
-          this.startGame();
-        }
-        break;
-
-      case "start_voting":
-        if (this.state.stage === "discussion" && this.status === "active") {
-          this.state.stage = "voting";
-        }
-        break;
-
-      case "cast_vote":
-        if (this.state.stage === "voting" && action.payload?.suspectId) {
-          const targetExists = this.players.some(
-            (p) => p.profileId === action.payload.suspectId && !p.isEliminated && p.role !== "spectator"
-          );
-          if (targetExists && action.payload.suspectId !== playerId) {
-            this.state.votes[playerId] = action.payload.suspectId;
-          }
-        }
-        break;
-
-      case "finish_voting":
-        if (this.state.stage === "voting" && this.status === "active") {
-          this.finishVoting();
-        }
-        break;
-
-      case "next_round":
-        if (this.state.stage === "results" && this.status === "active") {
-          this.nextRound();
-        }
-        break;
-
-      case "restart_game":
-        if (player.role === "host" && this.status === "finished") {
-          this.restartGame();
-        }
-        break;
-
-      default:
-        console.warn(`Unknown action type: ${action.type}`);
-    }
+  validateGameAction(playerId: string, action: GameAction<any>) {
+    return true;
   }
 
+  /** Process a player's action in the game */
+  processAction(playerId: string, action: GameAction<any>): void {}
+
   /** Return a personalized game state for a given member */
-  getPersonalizedState(member: RoomMember): WordImposterState & { playerRole?: string } {
-    const baseState = { ...this.state, votes: { ...this.state.votes } };
-    const player = this.players.find((p) => p.profileId === member.id);
-
-    if (!player || player.role === "spectator") {
-      // Spectators see everything during results, limited view during game
-      if (this.state.stage === "results" || this.status === "finished") {
-        return { ...baseState, playerRole: "spectator" };
-      }
-      return {
-        ...baseState,
-        imposterIds: [],
-        imposterWord: "",
-        playerRole: "spectator",
-      };
-    }
-
-    const isImposter = this.state.imposterIds.includes(member.id);
-
-    if (isImposter) {
-      // Imposters see their word but not the civilian word
-      return {
-        ...baseState,
-        civilianWord: this.state.imposterWord,
-        imposterWord: this.state.imposterWord,
-        playerRole: "imposter",
-      };
-    }
-
-    // Civilians only see the civilian word, imposters not revealed
-    return {
-      ...baseState,
-      imposterIds: [],
-      imposterWord: "",
-      civilianWord: this.state.civilianWord,
-      playerRole: "civilian",
+  getPlayerViewState(member: RoomMember): WordImposterState & { playerRole?: string } {
+    const playerViewState = {
+      ...this.state,
+      votes: {
+        ...this.state.votes,
+      },
     };
+
+    /** spectator gets to see everything */
+    if (member.role == "spectator") return playerViewState;
+
+    /** the imposter see `civilainWord` as their own */
+    if (playerViewState.imposterIds.includes(member.id)) {
+      playerViewState.civilianWord = this.state.imposterWord;
+    }
+
+    playerViewState.imposterWord = "";
+    playerViewState.imposterIds = [];
+
+    return playerViewState;
   }
 
   /** Get current game state */
@@ -267,10 +209,10 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   private setupRound(): void {
     const activePlayers = this.players.filter((p) => !p.isEliminated && p.role !== "spectator");
 
-    if (activePlayers.length < this.config.minPlayers) {
-      this.status = "finished";
-      return;
-    }
+    // if (activePlayers.length < this.config.minPlayers) {
+    // this.status = "finished";
+    // return;
+    // }
 
     const imposterCount = 1;
 
@@ -281,26 +223,6 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     this.state.civilianWord = wordPair.civilianWord;
     this.state.imposterWord = wordPair.imposterWord;
     this.state.stage = "discussion";
-  }
-
-  /** Restart the game */
-  private restartGame(): void {
-    // Reset all players
-    this.players.forEach((player) => {
-      player.isEliminated = false;
-    });
-
-    // Reset state
-    this.state = {
-      stage: "setup",
-      round: 1,
-      imposterIds: [],
-      civilianWord: "",
-      imposterWord: "",
-      votes: {},
-    };
-
-    this.status = "waiting";
   }
 
   /** Get active player count */
