@@ -1,5 +1,6 @@
 export * from "./FloatingConsoleLogs";
 export * from "./AnimatedBanner";
+export * from "./Modal";
 
 export * from "./ui/Button";
 export * from "./ui/Card";
