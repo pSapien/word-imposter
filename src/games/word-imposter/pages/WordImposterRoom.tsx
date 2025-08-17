@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Card, CardContent, CardHeader } from "../../../components/ui/Card.tsx";
 import { Button } from "../../../components/ui/Button.tsx";
@@ -12,12 +12,14 @@ import { Constants } from "@app/constants";
 
 export function WordImposterRoom() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+
   const { status, send, login } = useSocket();
   const isConnected = status === "connected";
   const isAuthenticated = status === "authenticated";
 
   const [playerName, setPlayerName] = useLocalStorage(Constants.StorageKeys.Name, "");
-  const [roomCode, setRoomCode] = useState("");
+  const [roomCode, setRoomCode] = useState(params.get("roomCode") || "");
   const [roomName, setRoomName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);

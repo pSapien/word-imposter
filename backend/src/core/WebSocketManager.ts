@@ -88,6 +88,10 @@ export class WebSocketManager<M extends Message> {
       .map((c) => c.id);
   }
 
+  getAllConnections() {
+    return Array.from(this.connectionsById.values());
+  }
+
   private generateConnectionId(): string {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
   }

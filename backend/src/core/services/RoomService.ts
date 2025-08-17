@@ -1,4 +1,4 @@
-import { uuid } from "uuidv4";
+import { v4 as uuid } from "uuid";
 import type { BaseGame } from "../GameEngine.js";
 import type { GuestProfile } from "./SessionService.js";
 
@@ -181,13 +181,18 @@ export class RoomService {
     return code;
   }
 
-  // Cleanup methods
   cleanupEmptyRooms(): void {
-    for (const [roomId, room] of this.rooms.entries()) {
+    for (const [roomId, room] of Array.from(this.rooms.entries())) {
       if (room.members.length === 0) {
         this.rooms.delete(roomId);
         this.roomCodes.delete(room.roomCode);
       }
     }
+  }
+
+  shutdown() {
+    this.rooms.clear();
+    this.roomCodes.clear();
+    this.memberToRoom.clear();
   }
 }

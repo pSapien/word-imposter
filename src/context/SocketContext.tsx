@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import type { ClientRequestEvents, ServerResponseEvents } from "../../shared";
@@ -41,17 +41,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const handlersRef = useRef<Set<SocketEventHandlers>>(new Set());
   const pingIntervalRef = useRef<number | null>(null);
 
-  const send = (message: ClientRequestEvents) => {
+  const send = useCallback((message: ClientRequestEvents) => {
     if (message.type !== "ping") console.log("📤 SX:", message.type);
     ws.send(JSON.stringify(message));
-  };
+  }, []);
 
-  const login = (playerName: string) => {
+  const login = useCallback((playerName: string) => {
     send({
       type: "login",
       payload: { displayName: playerName.trim() },
     });
-  };
+  }, []);
 
   const startPing = () => {
     stopPing();
@@ -85,6 +85,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   };
 
   useEffect(() => {
+    console.log("useEffect is called");
     ws.addEventListener("open", () => {
       console.log("🔌 Global socket connected");
       setStatus("connected");
@@ -130,16 +131,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     });
 
-    return () => {
+    () => {
+      console.log("usEffect unmount");
       stopPing();
       ws.close();
     };
   }, []);
 
-  const addHandler = (handler: SocketEventHandlers) => {
+  const addHandler = useCallback((handler: SocketEventHandlers) => {
     handlersRef.current.add(handler);
     return () => handlersRef.current.delete(handler);
-  };
+  }, []);
 
   const contextValue: SocketContextType = {
     status,

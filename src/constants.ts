@@ -1,7 +1,7 @@
 export const Constants = {
   StorageKeys: {
     Name: "$$name$$",
-    SessionProfile: "$$userId",
+    SessionProfile: "$$session_profile$$",
   },
   Endpoint: "ws://localhost:3000",
   PingInterval: 1000 * 30,

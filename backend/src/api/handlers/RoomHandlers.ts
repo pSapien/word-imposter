@@ -1,5 +1,5 @@
-import { AuthenticatedRequest, ServerResponseEvents } from "@imposter/shared";
-import { RoomService, WebSocketManager, SessionService } from "../../core";
+import { AuthenticatedRequest, RoomJoinedResponse, ServerResponseEvents } from "@imposter/shared";
+import { RoomService, WebSocketManager, SessionService, Room } from "../../core";
 import { WordImposterGame } from "../../games/word-imposter/WordImposterGame.js";
 
 export interface CreateRoomRequest {
@@ -35,7 +35,7 @@ export class RoomHandlers {
 
   handleCreateRoom = (req: AuthenticatedRequest, payload: CreateRoomRequest["payload"]) => {
     try {
-      const session = this.services.session.getSession(req.connectionId);
+      const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.create(session.profile, payload.roomName);
 
       this.wsManager.send(req.connectionId, {
@@ -44,9 +44,17 @@ export class RoomHandlers {
           roomCode: room.roomCode,
           roomName: room.name,
           hostId: room.hostId,
+          members: room.members.map((r) => {
+            return {
+              displayName: r.displayName,
+              id: r.profileId,
+              role: r.role,
+            };
+          }),
         },
       });
     } catch (error) {
+      console.error("Error:", error);
       this.wsManager.send(req.connectionId, {
         type: "error",
         payload: {
@@ -59,19 +67,9 @@ export class RoomHandlers {
 
   handleJoinRoom = (req: AuthenticatedRequest, payload: JoinRoomRequest["payload"]) => {
     try {
-      const session = this.services.session.getSession(req.connectionId);
+      const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.join(payload.roomCode, session.profile, payload.role || "player");
-
-      this.wsManager.send(req.connectionId, {
-        type: "room_joined",
-        payload: {
-          roomCode: room.roomCode,
-          roomName: room.name,
-          hostId: room.hostId,
-        },
-      });
-
-      this.broadcastRoomUpdate(room.roomId);
+      this.broadcastRoomJoined(room);
     } catch (error) {
       this.wsManager.send(req.connectionId, {
         type: "error",
@@ -85,16 +83,9 @@ export class RoomHandlers {
 
   handleLeaveRoom = (req: AuthenticatedRequest) => {
     try {
-      const session = this.services.session.getSession(req.connectionId);
+      const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.leave(session.profile.id);
-      if (room) {
-        this.broadcastRoomUpdate(room.roomId);
-      }
-
-      this.wsManager.send(req.connectionId, {
-        type: "room_left",
-        payload: {},
-      });
+      if (room) this.broadcastRoomJoined(room);
     } catch (error) {
       console.error("Error handling leave room:", error);
     }
@@ -162,9 +153,26 @@ export class RoomHandlers {
     }
   };
 
-  private broadcastRoomUpdate(roomId: string) {
-    // Implementation to broadcast room state to all members
-    // This would get all room members and send them the updated room state
+  private broadcastRoomJoined(room: Room) {
+    const event: RoomJoinedResponse = {
+      type: "room_joined",
+      payload: {
+        roomCode: room.roomCode,
+        roomName: room.name,
+        hostId: room.hostId,
+        members: room.members.map((r) => {
+          return {
+            displayName: r.displayName,
+            id: r.profileId,
+            role: r.role,
+          };
+        }),
+      },
+    } as const;
+    room.members
+      .map((member) => this.services.session.getSessionByProfileId(member.profileId))
+      .map((session) => session.connectionId)
+      .forEach((connectionId) => this.wsManager.send(connectionId, event));
   }
 
   private broadcastGameUpdate(roomId: string, game: any) {

@@ -36,10 +36,10 @@ export class MessageRouter {
       this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleJoinRoom(req, payload))
     );
 
-    // this.routes.set(
-    //   "leave_room",
-    //   this.authMiddleware.requireAuth((req, payload) => this.roomHandlers.handleLeaveRoom(req.connectionId))
-    // );
+    this.routes.set(
+      "leave_room",
+      this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleLeaveRoom(req))
+    );
 
     // this.routes.set(
     //   "start_game",

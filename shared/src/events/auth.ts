@@ -1,3 +1,8 @@
+export interface Profile {
+  id: string;
+  displayName: string;
+}
+
 export interface LoginRequest {
   type: "login";
   payload: {

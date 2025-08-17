@@ -1,4 +1,4 @@
-export interface ErrroResponse {
+export interface ErrorResponse {
   type: "error";
   payload: {
     code: string;

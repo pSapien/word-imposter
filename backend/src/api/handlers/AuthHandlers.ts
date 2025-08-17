@@ -1,4 +1,4 @@
-import { AuthSession, SessionService, WebSocketManager } from "../../core";
+import { SessionProfile, SessionService, WebSocketManager } from "../../core";
 import type { LoginRequest, ServerResponseEvents, SyncLoginRequest } from "@imposter/shared";
 
 type Services = {
@@ -8,7 +8,7 @@ type Services = {
 export class AuthHandlers {
   constructor(private wsManager: WebSocketManager<ServerResponseEvents>, private services: Services) {}
 
-  private sendLoginSuccess(connectionId: string, session: AuthSession) {
+  private sendLoginSuccess(connectionId: string, session: SessionProfile) {
     this.wsManager.send(connectionId, {
       type: "login_success",
       payload: {
@@ -23,6 +23,7 @@ export class AuthHandlers {
 
   handleSyncLogin = (connectionId: string, payload: SyncLoginRequest["payload"]) => {
     const session = this.services.session.getSession(payload.sessionId);
+    console.log("HandleSyncLogin: found session", payload.sessionId, session);
 
     if (!session) {
       this.wsManager.send(connectionId, {
@@ -46,7 +47,6 @@ export class AuthHandlers {
 
   handleLogin = (connectionId: string, payload: LoginRequest["payload"]) => {
     try {
-      console.log("handle login");
       const session = this.services.session.createGuestSession(connectionId, payload.displayName);
       this.sendLoginSuccess(connectionId, session);
     } catch (error) {

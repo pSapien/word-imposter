@@ -1,10 +1,10 @@
 import { RoomService, SessionService, WebSocketManager, AuthMiddleware } from "./core";
+import { ServerResponseEvents } from "@imposter/shared";
 
 import { AuthHandlers } from "./api/handlers/AuthHandlers.js";
 import { RoomHandlers } from "./api/handlers/RoomHandlers.js";
 import { GameHandlers } from "./api/handlers/GameHandlers.js";
 import { MessageRouter } from "./api/routes/MessageRouter.js";
-import { ServerResponseEvents } from "@imposter/shared";
 
 const services = {
   session: new SessionService(),
@@ -25,12 +25,11 @@ const routeHandlers = {
 
 const messageRouter = new MessageRouter(middlewares, routeHandlers);
 
-// Cleanup intervals
-setInterval(() => {
-  // sessionService.cleanupInactiveSessions();
+const cleanupInterval = setInterval(() => {
+  // services.session.cleanupInactiveSessions();
   services.room.cleanupEmptyRooms();
   wsManager.cleanupStaleConnections();
-}, 60000); // Every minute
+}, 60000);
 
 const server = Bun.serve({
   port: 3000,
@@ -51,7 +50,6 @@ const server = Bun.serve({
     },
 
     async message(ws, data) {
-      console.log(wsManager.getActiveConnectionIds());
       const connectionId = wsManager.getConnectionId(ws);
 
       if (!connectionId) {
@@ -94,3 +92,31 @@ const server = Bun.serve({
 });
 
 console.log(`🎮 Server running on ${server.hostname}:${server.port}`);
+
+// ---------------- Graceful Shutdown ----------------
+
+async function gracefulShutdown(signal: string) {
+  console.log(`\nReceived ${signal}, shutting down gracefully...`);
+
+  server.stop(true);
+  clearInterval(cleanupInterval);
+
+  wsManager.getAllConnections().forEach((conn) => {
+    try {
+      conn.socket.close(1001, "Server shutting down");
+      wsManager.removeConnection(conn.id);
+    } catch (err) {
+      console.error("Error closing connection:", err);
+    }
+  });
+
+  services.session.shutdown();
+  services.room.shutdown();
+
+  console.log("Cleanup complete. Exiting.");
+  process.exit(0);
+}
+
+["SIGINT", "SIGTERM"].forEach((sig) => {
+  process.on(sig, () => gracefulShutdown(sig));
+});

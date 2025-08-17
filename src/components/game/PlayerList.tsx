@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader } from "../ui/Card";
 import { Button } from "../ui/Button";
-import { cn } from "../../utils/cn";
+import { cn } from "../../utils";
 
 interface Player {
-  profileId: string;
+  id: string;
   displayName: string;
   isEliminated?: boolean;
   isHost?: boolean;
@@ -38,7 +38,7 @@ export function PlayerList({
 }: PlayerListProps) {
   const renderPlayer = (player: Player, isSpectator = false) => (
     <div
-      key={player.profileId}
+      key={player.id}
       className={cn(
         "flex items-center justify-between p-3 rounded-lg transition-all duration-200",
         "hover:bg-white/30",
@@ -62,7 +62,7 @@ export function PlayerList({
               {player.displayName}
             </span>
 
-            {player.profileId === hostId && (
+            {player.id === hostId && (
               <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">👑 HOST</span>
             )}
 
@@ -80,17 +80,17 @@ export function PlayerList({
       </div>
 
       <div className="flex items-center space-x-2">
-        {canVote && votingStage && !player.isEliminated && !isSpectator && player.profileId !== currentUserId && (
-          <Button size="sm" variant="danger" onClick={() => onVotePlayer?.(player.profileId)}>
+        {canVote && votingStage && !player.isEliminated && !isSpectator && player.id !== currentUserId && (
+          <Button size="sm" variant="danger" onClick={() => onVotePlayer?.(player.id)}>
             Vote Out
           </Button>
         )}
 
-        {canKick && player.profileId !== currentUserId && player.profileId !== hostId && (
+        {canKick && player.id !== currentUserId && player.id !== hostId && (
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onKickPlayer?.(player.profileId)}
+            onClick={() => onKickPlayer?.(player.id)}
             className="text-red-500 hover:text-red-700"
           >
             ⛔

@@ -17,9 +17,9 @@ export class AuthMiddleware {
 
   requireAuth = (handler: (req: AuthenticatedRequest, payload: any) => void) => {
     return (connectionId: string, payload: any) => {
-      const sessionId = this.services.session.getSessionId(connectionId);
+      const session = this.services.session.getSessionByConnectionId(connectionId);
 
-      if (!sessionId) {
+      if (!session) {
         this.wsManager.send(connectionId, {
           type: "error",
           payload: {
@@ -30,11 +30,9 @@ export class AuthMiddleware {
         return;
       }
 
-      const session = this.services.session.getSession(sessionId);
-
       const authenticatedRequest = {
         connectionId,
-        sessionId: sessionId,
+        sessionId: session.sessionId,
         profileId: session.profile.id,
       };
 
