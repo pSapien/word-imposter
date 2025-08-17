@@ -8,13 +8,40 @@ import { PlayerList } from "../../../components/game/PlayerList";
 import { useSocket, useSocketHandler } from "../../../context/SocketContext";
 import { WordCard } from "../components";
 import { WORD_CATEGORIES } from "../config";
-import type { WordImposterGameState } from "../types";
 import { cn } from "../../../utils";
 import type { Room } from "../../../../shared";
+
+// Enhanced game state interface matching our game engine
+interface WordImposterGameState {
+  stage: "setup" | "discussion" | "voting" | "results" | "finished";
+  round: number;
+  imposterIds: string[];
+  civilianWord: string;
+  imposterWord: string;
+  votes: Record<string, string>;
+  playerRole?: "imposter" | "civilian" | "spectator";
+  players: Array<{
+    profileId: string;
+    displayName: string;
+    role: "host" | "player" | "spectator";
+    isEliminated: boolean;
+  }>;
+  roundResults?: {
+    eliminatedPlayerId?: string;
+    imposterFound: boolean;
+    imposterWord: string;
+    civilianWord: string;
+    gameOver: boolean;
+    winner?: "imposters" | "civilians";
+  };
+  gameStatus: "waiting" | "active" | "finished";
+}
 
 interface GameSettings {
   imposterCount: number;
   wordCategories: string[];
+  discussionTimeMs?: number;
+  votingTimeMs?: number;
 }
 
 export function WordImposterGame() {
@@ -29,154 +56,146 @@ export function WordImposterGame() {
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     imposterCount: 1,
     wordCategories: ["general"],
+    discussionTimeMs: 300000, // 5 minutes
+    votingTimeMs: 120000, // 2 minutes
   });
-  // const [showSettings, setShowSettings] = useState(false);
 
   // Game state (during game)
   const [gameState, setGameState] = useState<WordImposterGameState | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
-  console.log({ setGameState, setHasVoted });
+  const [isStartingGame, setIsStartingGame] = useState(false);
 
+  // Previous game state for comparison
+  const [prevGameState, setPrevGameState] = useState<WordImposterGameState | null>(null);
+
+  // Socket message handlers - Only listen to get_game_state
   useSocketHandler({
-    room_joined: (payload) => setRoom(payload),
-    error: (error) => toast.error(error.message),
-    onError: (error) => toast.error(error.message),
+    room_joined: (payload) => {
+      setRoom(payload);
+      toast.success("Joined room successfully! 👋");
+    },
+
+    // @ts-ignore
+    get_game_state: (payload) => {
+      const newGameState = payload.gameState as WordImposterGameState;
+
+      // Handle state changes and show appropriate toasts
+      if (prevGameState && newGameState) {
+        handleGameStateChanges(prevGameState, newGameState);
+      }
+
+      // Update states
+      setPrevGameState(gameState);
+      setGameState(newGameState);
+      setIsStartingGame(false);
+
+      // Update voting state based on current stage and votes
+      if (newGameState.stage === "voting") {
+        const userHasVoted = newGameState.votes[currentUserId || ""] !== undefined;
+        setHasVoted(userHasVoted);
+      } else {
+        setHasVoted(false);
+      }
+
+      // Update room status based on game status
+      setRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              status:
+                newGameState.gameStatus === "active"
+                  ? "active"
+                  : newGameState.gameStatus === "finished"
+                  ? "finished"
+                  : "waiting",
+            }
+          : null
+      );
+    },
+
+    error: (error) => {
+      toast.error(error.message);
+      if (error.code === "room.not_found") {
+        navigate("/");
+      }
+      setIsStartingGame(false);
+    },
+
+    onError: (error) => {
+      toast.error(error.message);
+      setIsStartingGame(false);
+    },
   });
 
-  // Handle socket messages
-  // useSocketHandler((message) => {
-  //   switch (message.type) {
-  //     case "player_joined": {
-  //       // Add new player to room
-  //       const { player } = message.payload;
-  //       setRoomState((prev) =>
-  //         prev
-  //           ? {
-  //               ...prev,
-  //               members: [
-  //                 ...prev.members,
-  //                 {
-  //                   profileId: player.profileId,
-  //                   displayName: player.displayName,
-  //                   role: "player",
-  //                   isReady: false,
-  //                 },
-  //               ],
-  //             }
-  //           : null
-  //       );
-  //       toast.success(`${player.displayName} joined the room! 👋`);
-  //       break;
-  //     }
+  // Handle game state changes and show appropriate notifications
+  const handleGameStateChanges = (prev: WordImposterGameState, current: WordImposterGameState) => {
+    // Game started
+    if (prev.gameStatus === "waiting" && current.gameStatus === "active") {
+      toast.success("Game started! 🎮");
+    }
 
-  //     case "player_left": {
-  //       // Remove player from room
-  //       const { player } = message.payload;
-  //       setRoomState((prev) =>
-  //         prev
-  //           ? {
-  //               ...prev,
-  //               members: prev.members.filter((m) => m.profileId !== player.profileId),
-  //             }
-  //           : null
-  //       );
-  //       toast(`${player.displayName} left the room`);
-  //       break;
-  //     }
+    // Stage changes
+    if (prev.stage !== current.stage) {
+      switch (current.stage) {
+        case "discussion":
+          if (prev.stage === "results") {
+            toast.success(`New round started! Round ${current.round} 🔄`);
+          }
+          break;
+        case "voting":
+          toast.success("Voting has begun! 🗳️");
+          break;
+        case "results":
+          // Show voting results
+          if (current.roundResults) {
+            const { eliminatedPlayerId, imposterFound, gameOver, winner } = current.roundResults;
 
-  //     case "game_starting": {
-  //       toast.success("Game is starting! 🚀");
-  //       setRoomState((prev) => (prev ? { ...prev, status: "starting" } : null));
-  //       break;
-  //     }
+            if (eliminatedPlayerId) {
+              const eliminatedPlayer = current.players.find((p) => p.profileId === eliminatedPlayerId);
+              if (imposterFound) {
+                toast.success(`🎉 Imposter ${eliminatedPlayer?.displayName} was eliminated!`);
+              } else {
+                toast.error(`😔 Innocent ${eliminatedPlayer?.displayName} was eliminated!`);
+              }
+            } else {
+              toast("🤝 Vote was tied - no one eliminated");
+            }
 
-  //     case "game_started": {
-  //       toast.success("Game started! 🎮");
-  //       setRoomState((prev) => (prev ? { ...prev, status: "active" } : null));
-  //       // The game state will be provided in the next message
-  //       break;
-  //     }
+            // Game over notifications
+            if (gameOver) {
+              if (winner === "civilians") {
+                toast.success("🎉 Civilians win! All imposters were caught!");
+              } else if (winner === "imposters") {
+                toast.error("😈 Imposters win! They outnumber the civilians!");
+              }
+            }
+          }
+          break;
+        case "finished":
+          // Additional game finished notification if needed
+          break;
+      }
+    }
 
-  //     case "game_state": {
-  //       if (message.payload) {
-  //         setGameState(message.payload as WordImposterGameState);
-  //       }
-  //       break;
-  //     }
+    // Vote cast notification (compare vote counts)
+    if (prev.stage === "voting" && current.stage === "voting") {
+      const prevVoteCount = Object.keys(prev.votes).length;
+      const currentVoteCount = Object.keys(current.votes).length;
 
-  //     case "game_event": {
-  //       const { event, gameState: newGameState } = message.payload;
-
-  //       switch (event.type) {
-  //         case "voting_started":
-  //           toast.success("Voting has begun! 🗳️");
-  //           setHasVoted(false);
-  //           setGameState(newGameState);
-  //           break;
-
-  //         case "vote_cast":
-  //           if (event.data.voterId === currentUserId) {
-  //             setHasVoted(true);
-  //             toast.success("Vote cast! ✅");
-  //           }
-  //           setGameState(newGameState);
-  //           break;
-
-  //         case "voting_finished": {
-  //           setHasVoted(false);
-  //           const results = event.data;
-
-  //           if (results.eliminatedPlayerId) {
-  //             const eliminatedPlayer = newGameState?.players.find(
-  //               (p: any) => p.profileId === results.eliminatedPlayerId
-  //             );
-  //             if (results.imposterFound) {
-  //               toast.success(`🎉 Imposter ${eliminatedPlayer?.displayName} was eliminated!`);
-  //             } else {
-  //               toast.error(`😔 Innocent ${eliminatedPlayer?.displayName} was eliminated!`);
-  //             }
-  //           } else {
-  //             toast("🤝 Vote was tied - no one eliminated");
-  //           }
-
-  //           setGameState(newGameState);
-  //           break;
-  //         }
-
-  //         case "round_started":
-  //           toast.success("New round started! 🔄");
-  //           setGameState(newGameState);
-  //           break;
-
-  //         case "game_finished": {
-  //           const gameResults = event.data;
-  //           if (gameResults.imposterFound) {
-  //             toast.success("🎉 Civilians win! Imposter was caught!");
-  //           } else {
-  //             toast.error("😈 Imposters win! They survived!");
-  //           }
-  //           setGameState(newGameState);
-  //           break;
-  //         }
-
-  //         default:
-  //           setGameState(newGameState);
-  //           break;
-  //       }
-  //       break;
-  //     }
-
-  //     case "error":
-  //       toast.error(message.payload.message);
-  //       if (message.payload.code === "room.not_found") {
-  //         navigate("/");
-  //       }
-  //       break;
-  //   }
-  // });
+      if (currentVoteCount > prevVoteCount) {
+        // Check if current user just voted
+        const userJustVoted = !prev.votes[currentUserId || ""] && current.votes[currentUserId || ""];
+        if (userJustVoted) {
+          const targetId = current.votes[currentUserId || ""];
+          const targetPlayer = current.players.find((p) => p.profileId === targetId);
+          toast.success(`Vote cast for ${targetPlayer?.displayName}! ✅`);
+        }
+      }
+    }
+  };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && roomCode) {
       send({
         type: "join_room",
         payload: { roomCode, role: "player" },
@@ -184,52 +203,98 @@ export function WordImposterGame() {
     }
   }, [status, roomCode, send]);
 
+  // Helper variables
   const isHost = room?.hostId === currentUserId;
+  const isGameWaiting = !gameState || gameState.gameStatus === "waiting";
+  const isGameActive = gameState?.gameStatus === "active";
+  const isGameFinished = gameState?.gameStatus === "finished";
+
   const isDiscussion = gameState?.stage === "discussion";
   const isVotingStage = gameState?.stage === "voting";
   const isResults = gameState?.stage === "results";
-  const isGameActive = false;
 
+  const currentUserWord = gameState?.playerRole === "imposter" ? gameState.imposterWord : gameState?.civilianWord;
+
+  // Event handlers
   const handleStartGame = () => {
-    // if (!roomState || roomState.members.length < 3) {
-    //   toast.error("Need at least 3 players to start");
-    //   return;
-    // }
-    // send({
-    //   type: "start_game",
-    //   payload: {
-    //     gameType: "word-imposter",
-    //     settings: gameSettings,
-    //   },
-    // });
+    if (!room || room.members.length < 3) {
+      toast.error("Need at least 3 players to start");
+      return;
+    }
+
+    if (gameSettings.wordCategories.length === 0) {
+      toast.error("Please select at least one word category");
+      return;
+    }
+
+    setIsStartingGame(true);
+    send({
+      type: "start_game",
+      payload: {
+        gameType: "word-imposter",
+        settings: gameSettings,
+      },
+    });
   };
 
   const handleStartVoting = () => {
     // send({
     //   type: "game_action",
-    //   payload: { actionType: "start_voting" },
+    //   payload: {
+    //     actionType: "start_voting",
+    //     gameId: gameState?.gameId,
+    //   },
     // });
   };
 
   const handleFinishVoting = () => {
     // send({
     //   type: "game_action",
-    //   payload: { actionType: "finish_voting" },
+    //   payload: {
+    //     actionType: "finish_voting",
+    //     gameId: gameState?.gameId,
+    //   },
     // });
   };
 
   const handleNextRound = () => {
     // send({
     //   type: "game_action",
-    //   payload: { actionType: "next_round" },
+    //   payload: {
+    //     actionType: "next_round",
+    //     gameId: gameState?.gameId,
+    //   },
+    // });
+  };
+
+  const handleRestartGame = () => {
+    // send({
+    //   type: "game_action",
+    //   payload: {
+    //     actionType: "restart_game",
+    //     gameId: gameState?.gameId,
+    //   },
     // });
   };
 
   const handleVotePlayer = (targetId: string) => {
-    console.log({ targetId });
+    if (hasVoted) {
+      toast.error("You have already voted!");
+      return;
+    }
+
+    if (targetId === currentUserId) {
+      toast.error("You cannot vote for yourself!");
+      return;
+    }
+
     // send({
     //   type: "game_action",
-    //   payload: { actionType: "cast_vote", data: { targetId } },
+    //   payload: {
+    //     actionType: "cast_vote",
+    //     gameId: gameState?.gameId,
+    //     data: { targetId },
+    //   },
     // });
   };
 
@@ -242,6 +307,8 @@ export function WordImposterGame() {
   };
 
   const handleCategoryToggle = (categoryId: string) => {
+    if (!isHost) return;
+
     setGameSettings((prev) => ({
       ...prev,
       wordCategories: prev.wordCategories.includes(categoryId)
@@ -253,7 +320,12 @@ export function WordImposterGame() {
   // Get players for display
   const roomPlayers = room?.members.filter((m) => m.role !== "spectator") || [];
   const spectators = room?.members.filter((m) => m.role === "spectator") || [];
-  const gamePlayers = gameState?.players.filter((p) => !p.isEliminated) || [];
+  const activePlayers = gameState?.players.filter((p) => !p.isEliminated) || [];
+  const eliminatedPlayers = gameState?.players.filter((p) => p.isEliminated) || [];
+
+  // Vote counts for display
+  const voteCount = gameState?.votes ? Object.keys(gameState.votes).length : 0;
+  const totalActivePlayers = activePlayers.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden">
@@ -273,6 +345,7 @@ export function WordImposterGame() {
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">🎭 Word Imposter</h1>
             <div className="text-sm text-white/80">Room: {roomCode}</div>
+            {gameState && <div className="text-sm text-white/80">Round: {gameState.round}</div>}
             <div
               className={cn(
                 "text-sm px-3 py-1 rounded-full inline-block mt-1",
@@ -288,12 +361,17 @@ export function WordImposterGame() {
 
       <div className="relative z-10 max-w-4xl mx-auto p-4 space-y-6">
         {/* Game Content */}
-        {isGameActive ? (
+        {isGameActive && gameState ? (
           <>
             {/* Word Card - Always visible when game is active */}
-            {gameState?.word && (
+            {currentUserWord && (
               <div className="sticky top-4 z-20">
-                <WordCard word={gameState.word} isImposter={gameState.isImposter} isRevealed={true} />
+                <WordCard
+                  word={currentUserWord}
+                  isImposter={gameState.playerRole === "imposter"}
+                  isRevealed={true}
+                  // playerRole={gameState.playerRole}
+                />
               </div>
             )}
 
@@ -308,14 +386,31 @@ export function WordImposterGame() {
                         "px-4 py-2 rounded-full text-sm font-semibold",
                         isDiscussion && "bg-blue-500 text-white",
                         isVotingStage && "bg-red-500 text-white",
-                        isResults && "bg-green-500 text-white"
+                        isResults && "bg-green-500 text-white",
+                        isGameFinished && "bg-purple-500 text-white"
                       )}
                     >
                       {isDiscussion && "💬 Discussion Phase"}
                       {isVotingStage && "🗳️ Voting Phase"}
                       {isResults && "📊 Results Phase"}
+                      {isGameFinished && "🏁 Game Finished"}
                     </div>
                   </div>
+
+                  {/* Voting Progress */}
+                  {isVotingStage && (
+                    <div className="bg-white/20 rounded-lg p-3">
+                      <div className="text-white text-sm">
+                        Votes cast: {voteCount}/{totalActivePlayers}
+                      </div>
+                      <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-white rounded-full h-2 transition-all duration-300"
+                          style={{ width: `${(voteCount / totalActivePlayers) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-3 justify-center">
@@ -331,16 +426,22 @@ export function WordImposterGame() {
                       </Button>
                     )}
 
-                    {isHost && isResults && (
+                    {isHost && isResults && !gameState.roundResults?.gameOver && (
                       <Button onClick={handleNextRound} variant="primary">
                         Next Round 🔄
+                      </Button>
+                    )}
+
+                    {isHost && (isResults || isGameFinished) && gameState.roundResults?.gameOver && (
+                      <Button onClick={handleRestartGame} variant="danger">
+                        New Game 🎮
                       </Button>
                     )}
                   </div>
 
                   {/* Voting Status */}
                   {isVotingStage && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-white/80">
                       {hasVoted ? "✅ You have voted" : "⏳ Cast your vote below"}
                     </div>
                   )}
@@ -352,14 +453,36 @@ export function WordImposterGame() {
                       {gameState.roundResults.eliminatedPlayerId ? (
                         <div>
                           <p>{gameState.roundResults.imposterFound ? "🎉" : "😔"} Player eliminated</p>
-                          {gameState.roundResults.imposterFound && (
-                            <p className="text-sm mt-1">
-                              The imposter word was: <strong>{gameState.roundResults.imposterWord}</strong>
+                          <div className="text-sm mt-2 space-y-1">
+                            <p>
+                              Civilian word was: <strong>{gameState.roundResults.civilianWord}</strong>
                             </p>
-                          )}
+                            <p>
+                              Imposter word was: <strong>{gameState.roundResults.imposterWord}</strong>
+                            </p>
+                          </div>
                         </div>
                       ) : (
-                        <p>🤝 Vote was tied - no elimination</p>
+                        <div>
+                          <p>🤝 Vote was tied - no elimination</p>
+                          <div className="text-sm mt-2 space-y-1">
+                            <p>
+                              Civilian word was: <strong>{gameState.roundResults.civilianWord}</strong>
+                            </p>
+                            <p>
+                              Imposter word was: <strong>{gameState.roundResults.imposterWord}</strong>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {gameState.roundResults.gameOver && (
+                        <div className="mt-3 p-3 bg-white/20 rounded">
+                          <h4 className="font-bold text-lg">🏁 Game Over!</h4>
+                          <p className="text-lg">
+                            {gameState.roundResults.winner === "civilians" ? "🎉 Civilians Win!" : "😈 Imposters Win!"}
+                          </p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -368,30 +491,38 @@ export function WordImposterGame() {
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Players List */}
+              {/* Active Players List */}
               <PlayerList
-                players={gamePlayers.map((p) => ({
-                  ...p,
+                // title="Active Players"
+                players={activePlayers.map((p) => ({
                   id: p.profileId,
+                  displayName: p.displayName,
+                  isEliminated: false,
                   isHost: p.profileId === room?.hostId,
                   isCurrentUser: p.profileId === currentUserId,
                   hasVoted: gameState?.votes?.[p.profileId] !== undefined,
+                  role:
+                    gameState?.playerRole === "spectator"
+                      ? gameState.imposterIds.includes(p.profileId)
+                        ? "imposter"
+                        : "civilian"
+                      : undefined,
                 }))}
                 spectators={spectators}
                 currentUserId={currentUserId || ""}
                 hostId={room?.hostId}
-                canVote={isVotingStage && !hasVoted}
+                canVote={isVotingStage && !hasVoted && gameState?.playerRole !== "spectator"}
                 votingStage={isVotingStage}
                 onVotePlayer={handleVotePlayer}
               />
 
-              {/* Voting Interface */}
-              {isVotingStage && !hasVoted && (
+              {/* Voting Interface or Eliminated Players */}
+              {isVotingStage && !hasVoted && gameState?.playerRole !== "spectator" ? (
                 <Card variant="glass">
                   <CardContent className="p-4">
                     <h3 className="font-semibold text-gray-800 mb-3 text-center">Vote to eliminate a player:</h3>
                     <div className="grid grid-cols-1 gap-2">
-                      {gamePlayers
+                      {activePlayers
                         .filter((p) => p.profileId !== currentUserId)
                         .map((player) => (
                           <Button
@@ -406,18 +537,43 @@ export function WordImposterGame() {
                     </div>
                   </CardContent>
                 </Card>
+              ) : eliminatedPlayers.length > 0 ? (
+                <Card variant="glass">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-gray-800 mb-3 text-center">Eliminated Players</h3>
+                    <div className="space-y-2">
+                      {eliminatedPlayers.map((player) => (
+                        <div
+                          key={player.profileId}
+                          className="flex items-center justify-between p-2 bg-gray-100 rounded"
+                        >
+                          <span className="text-gray-600">{player.displayName}</span>
+                          <span className="text-sm text-gray-500">
+                            {gameState?.playerRole === "spectator" && gameState.imposterIds.includes(player.profileId)
+                              ? "👤 Imposter"
+                              : ""}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div /> // Empty space when not voting and no eliminated players
               )}
             </div>
           </>
-        ) : (
+        ) : isGameWaiting ? (
+          /* Pre-game lobby */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Players List */}
             <PlayerList
+              // title="Players"
               players={roomPlayers.map((p) => ({
                 id: p.id,
                 displayName: p.displayName,
                 isEliminated: false,
-                isHost: p.role === "host",
+                isHost: p.id === room?.hostId,
                 isCurrentUser: p.id === currentUserId,
                 hasVoted: false,
               }))}
@@ -463,20 +619,59 @@ export function WordImposterGame() {
                   <Input
                     type="number"
                     min={1}
-                    max={Math.floor(roomPlayers.length / 2)}
+                    max={Math.max(1, Math.floor(roomPlayers.length / 3))}
                     value={gameSettings.imposterCount}
                     onChange={(e) =>
                       setGameSettings((prev) => ({
                         ...prev,
                         imposterCount: Math.max(
                           1,
-                          Math.min(Number(e.target.value), Math.floor(roomPlayers.length / 2))
+                          Math.min(Number(e.target.value), Math.max(1, Math.floor(roomPlayers.length / 3)))
                         ),
                       }))
                     }
                     disabled={!isHost}
                     className="w-full"
                   />
+                  <div className="text-xs text-gray-500 mt-1">Recommended: 1 imposter per 3-4 players</div>
+                </div>
+
+                {/* Timer Settings */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-2 text-sm">Discussion (minutes)</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={Math.floor((gameSettings.discussionTimeMs || 300000) / 60000)}
+                      onChange={(e) =>
+                        setGameSettings((prev) => ({
+                          ...prev,
+                          discussionTimeMs: Number(e.target.value) * 60000,
+                        }))
+                      }
+                      disabled={!isHost}
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-gray-700 mb-2 text-sm">Voting (minutes)</label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={Math.floor((gameSettings.votingTimeMs || 120000) / 60000)}
+                      onChange={(e) =>
+                        setGameSettings((prev) => ({
+                          ...prev,
+                          votingTimeMs: Number(e.target.value) * 60000,
+                        }))
+                      }
+                      disabled={!isHost}
+                      className="w-full"
+                    />
+                  </div>
                 </div>
 
                 {/* Player Count Info */}
@@ -487,17 +682,24 @@ export function WordImposterGame() {
                   <div className="text-sm text-blue-600 mt-1">
                     <strong>Required:</strong> 3-20 players
                   </div>
+                  {gameSettings.imposterCount > 0 && (
+                    <div className="text-sm text-blue-600 mt-1">
+                      <strong>Imposters:</strong> {gameSettings.imposterCount}
+                    </div>
+                  )}
                 </div>
 
                 {/* Start Game Button */}
                 {isHost && (
                   <Button
                     onClick={handleStartGame}
-                    disabled={roomPlayers.length < 3 || gameSettings.wordCategories.length === 0}
+                    disabled={roomPlayers.length < 3 || gameSettings.wordCategories.length === 0 || isStartingGame}
                     className="w-full"
                     size="lg"
                   >
-                    {roomPlayers.length < 3
+                    {isStartingGame
+                      ? "Starting Game..."
+                      : roomPlayers.length < 3
                       ? `Need ${3 - roomPlayers.length} more players`
                       : gameSettings.wordCategories.length === 0
                       ? "Select at least one category"
@@ -509,7 +711,7 @@ export function WordImposterGame() {
               </CardContent>
             </Card>
           </div>
-        )}
+        ) : null}
 
         {/* Loading/Waiting States */}
         {!room && (

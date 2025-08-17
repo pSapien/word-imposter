@@ -23,7 +23,6 @@ export class AuthHandlers {
 
   handleSyncLogin = (connectionId: string, payload: SyncLoginRequest["payload"]) => {
     const session = this.services.session.getSession(payload.sessionId);
-    console.log("HandleSyncLogin: found session", payload.sessionId, session);
 
     if (!session) {
       this.wsManager.send(connectionId, {

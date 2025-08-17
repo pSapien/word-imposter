@@ -1,6 +1,6 @@
-import { AuthenticatedRequest, RoomJoinedResponse, ServerResponseEvents } from "@imposter/shared";
+import { AuthenticatedRequest, RoomJoinedResponse, ServerResponseEvents, StartGameRequest } from "@imposter/shared";
 import { RoomService, WebSocketManager, SessionService, Room } from "../../core";
-import { WordImposterGame } from "../../games/word-imposter/WordImposterGame.js";
+import { WordImposterGameEngine } from "../../games/imposter/WordImposterGame.js";
 
 export interface CreateRoomRequest {
   type: "create_room";
@@ -14,14 +14,6 @@ export interface JoinRoomRequest {
   payload: {
     roomCode: string;
     role?: "player" | "spectator";
-  };
-}
-
-export interface StartGameRequest {
-  type: "start_game";
-  payload: {
-    gameType: string;
-    settings: any;
   };
 }
 
@@ -96,13 +88,12 @@ export class RoomHandlers {
       const session = this.services.session.getSession(req.connectionId);
       const room = this.services.room.getRoomByMember(session.profile.id);
 
-      if (room.hostId !== session.profile.id) throw new Error("Only host can start games");
+      if (room.hostId && room.hostId !== session.profile.id) throw new Error("Only host can start games");
 
-      // Create game based on type
-      let game;
+      let game: WordImposterGameEngine;
       switch (payload.gameType) {
-        case "word-imposter":
-          game = new WordImposterGame({
+        case "imposter":
+          game = new WordImposterGameEngine({
             minPlayers: 3,
             maxPlayers: 20,
             allowSpectators: true,
@@ -113,22 +104,20 @@ export class RoomHandlers {
           throw new Error("Unknown game type");
       }
 
-      // Add players to game
       room.members
         .filter((m) => m.role === "player")
         .forEach((member) => {
-          game.addPlayer({
+          game.joinPlayer({
             profileId: member.profileId,
             displayName: member.displayName,
             role: "player",
           });
         });
 
-      // Add spectators
       room.members
         .filter((m) => m.role === "spectator")
         .forEach((member) => {
-          game.addPlayer({
+          game.joinPlayer({
             profileId: member.profileId,
             displayName: member.displayName,
             role: "spectator",
@@ -136,9 +125,7 @@ export class RoomHandlers {
         });
 
       const result = game.start();
-      if (!result.success) {
-        throw new Error(result.error || "Failed to start game");
-      }
+      if (!result.success) throw new Error(result.error || "Failed to start game");
 
       this.services.room.setGame(room.roomId, game);
       this.broadcastGameUpdate(room.roomId, game);

@@ -1,5 +1,5 @@
 import { ServerResponseEvents } from "@imposter/shared";
-import { WebSocketManager, RoomService, BaseGame, SessionService } from "../../core";
+import { WebSocketManager, RoomService, GameEngine, SessionService } from "../../core";
 
 export interface GameActionRequest {
   type: "game_action";
@@ -21,31 +21,23 @@ export class GameHandlers {
     try {
       const session = this.services.session.getSession(connectionId);
       const room = this.services.room.getRoomByMember(session.profile.id);
-      if (!room?.currentGame) {
-        throw new Error("No active game found");
-      }
+      if (!room?.currentGame) throw new Error("No active game found");
 
-      const result = room.currentGame.processAction({
+      room.currentGame.processAction({
         type: payload.actionType,
         playerId: session.profile.id,
         data: payload.data,
       });
 
-      if (!result.success) {
-        throw new Error(result.error || "Action failed");
-      }
-
-      // Broadcast game events to all room members
-      if (result.events) {
-        this.broadcastGameEvents(room.roomId, room.currentGame, result.events);
-      }
-
-      // Send success response
-      this.wsManager.send(connectionId, {
-        type: "game_action_success",
-        payload: {
-          actionType: payload.actionType,
-        },
+      room.members.forEach((member) => {
+        const personalizedState = room.currentGame.getPersonalizedState(member);
+        const sessionProfile = this.services.session.getSessionByProfileId(member.profileId);
+        this.wsManager.send(sessionProfile.connectionId, {
+          type: "game_state",
+          payload: {
+            state: personalizedState,
+          },
+        });
       });
     } catch (error) {
       this.wsManager.send(connectionId, {
@@ -90,35 +82,4 @@ export class GameHandlers {
       });
     }
   };
-
-  private broadcastGameEvents(roomId: string, game: BaseGame, events: any[]) {
-    // Get room and all member connections
-    const room =
-      this.roomService.getRoomByCode(roomId) ||
-      Array.from(this.roomService["rooms"].values()).find((r) => r.roomId === roomId);
-
-    if (!room) return;
-
-    events.forEach((event) => {
-      const targetMembers = event.targetPlayers || room.members.map((m) => m.profileId);
-
-      targetMembers.forEach((profileId: string) => {
-        const session = this.authService.getSession(profileId);
-        if (session?.socketId) {
-          const connection = this.wsManager.getConnection(session.socketId);
-          if (connection) {
-            // Send personalized game view with the event
-            const playerView = game.getPlayerView(profileId);
-            this.wsManager.send(connection.id, {
-              type: "game_event",
-              payload: {
-                event,
-                gameState: playerView,
-              },
-            });
-          }
-        }
-      });
-    });
-  }
 }

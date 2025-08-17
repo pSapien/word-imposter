@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { WordImposterGame } from "../../../games/word-imposter/WordImposterGame.js";
+import { WordImposterGame } from "../../../games/imposter/WordImposterGame.js";
 
 describe("WordImposterGame", () => {
   let game: WordImposterGame;

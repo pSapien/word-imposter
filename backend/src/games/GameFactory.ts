@@ -1,5 +1,5 @@
 import { BaseGame, GameConfig } from "../core/GameEngine.js";
-import { WordImposterGame } from "./word-imposter/WordImposterGame.js";
+import { WordImposterGame } from "./imposter/WordImposterGame.js";
 
 export interface GameTypeConfig {
   name: string;

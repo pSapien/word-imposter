@@ -6,6 +6,7 @@ import type {
   RoomJoinedResponse,
   LeaveRoomRequest,
 } from "./room.js";
+import type { StartGameRequest } from "./game.js";
 import type { PingRequest, PongResponse } from "./ping.js";
 import type { ErrorResponse } from "./error.js";
 
@@ -15,6 +16,7 @@ export type ClientRequestEvents =
   | CreateRoomRequest
   | JoinRoomRequest
   | LeaveRoomRequest
+  | StartGameRequest
   | PingRequest;
 
 export type ServerResponseEvents =
