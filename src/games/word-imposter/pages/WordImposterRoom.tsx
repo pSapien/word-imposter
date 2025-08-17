@@ -15,7 +15,6 @@ export function WordImposterRoom() {
   const [params] = useSearchParams();
 
   const { status, send, login } = useSocket();
-  const isConnected = status === "connected";
   const isAuthenticated = status === "authenticated";
 
   const [playerName, setPlayerName] = useLocalStorage(Constants.StorageKeys.Name, "");
@@ -24,7 +23,7 @@ export function WordImposterRoom() {
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
 
-  const gameInfo = getGameInfo("word-imposter")!;
+  const gameInfo = getGameInfo("imposter")!;
 
   useSocketHandler({
     login_success: (payload) => {
@@ -33,12 +32,12 @@ export function WordImposterRoom() {
     room_created: (payload) => {
       setIsLoading(false);
       toast.success("Room created! 🏠");
-      navigate(`/game/word-imposter/room/${payload.roomCode}`);
+      navigate(`/game/imposter/room/${payload.roomCode}`);
     },
     room_joined: (payload) => {
       setIsLoading(false);
       toast.success("Joined room! 🎊");
-      navigate(`/game/word-imposter/room/${payload.roomCode}`);
+      navigate(`/game/imposter/room/${payload.roomCode}`);
     },
     error: (payload) => {
       setIsLoading(false);
@@ -47,8 +46,6 @@ export function WordImposterRoom() {
   });
 
   function handleAuth() {
-    if (isAuthenticated) return true;
-
     if (!playerName.trim()) {
       toast.error("Please enter your name");
       return false;
@@ -59,7 +56,7 @@ export function WordImposterRoom() {
   }
 
   const handleCreateRoom = () => {
-    if (!handleAuth()) return;
+    handleAuth();
     if (!roomName.trim()) return toast.error("Please enter a room name");
 
     setIsLoading(true);
@@ -69,14 +66,14 @@ export function WordImposterRoom() {
     });
   };
 
-  const handleJoinRoom = () => {
-    if (!handleAuth()) return;
+  const handleJoinRoom = (role: "player" | "spectator") => {
+    handleAuth();
     if (!roomCode.trim()) return toast.error("Please enter a room code");
 
     setIsLoading(true);
     send({
       type: "join_room",
-      payload: { roomCode: roomCode.trim().toUpperCase(), role: "player" },
+      payload: { roomCode: roomCode.trim().toUpperCase(), role },
     });
   };
 
@@ -97,7 +94,7 @@ export function WordImposterRoom() {
         variant="ghost"
         className="absolute top-4 left-4 text-white hover:bg-white/20"
       >
-        ← Back to Games
+        ←
       </Button>
 
       <div className="w-full max-w-md space-y-6">
@@ -124,65 +121,42 @@ export function WordImposterRoom() {
                 placeholder="Enter your display name"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                disabled={!isConnected || isAuthenticated}
               />
               {isAuthenticated && <p className="text-sm text-green-600 mt-1">✅ Authenticated as {playerName}</p>}
             </div>
 
-            {!isAuthenticated && (
-              <Button
-                onClick={() => {
-                  handleAuth();
-                }}
-                variant="primary"
-                className="w-full"
-                disabled={!isConnected || !playerName.trim()}
-              >
-                Continue as {playerName || "Player"}
+            <div className="space-y-4">
+              <Button onClick={() => setShowCreateRoom(!showCreateRoom)} variant="primary" className="w-full" size="lg">
+                🏠 Create New Room
               </Button>
-            )}
 
-            {isAuthenticated && (
-              <div className="space-y-4">
-                <Button
-                  onClick={() => setShowCreateRoom(!showCreateRoom)}
-                  variant="primary"
-                  className="w-full"
-                  size="lg"
-                >
-                  🏠 Create New Room
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">or</span>
-                  </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
                 </div>
-
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Enter room code (e.g. ABC123)"
-                    value={roomCode}
-                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                    onKeyPress={(e) => e.key === "Enter" && handleJoinRoom()}
-                  />
-                  <Button
-                    onClick={handleJoinRoom}
-                    variant="secondary"
-                    className="w-full"
-                    size="lg"
-                    isLoading={isLoading}
-                  >
-                    🚪 Join Room
-                  </Button>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or</span>
                 </div>
               </div>
-            )}
 
-            {showCreateRoom && isAuthenticated && (
+              <div className="space-y-3">
+                <Input
+                  placeholder="Enter room code (e.g. ABC123)"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Card onClick={() => handleJoinRoom("spectator")} className="cursor-pointer p-4 text-center">
+                    👀 <p className="font-bold">Join as Spectator</p>
+                  </Card>
+                  <Card onClick={() => handleJoinRoom("player")} className="cursor-pointer p-4 text-center">
+                    🚪 <p className="font-bold">Join as Player</p>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {showCreateRoom && (
               <div className="space-y-4 pt-4 border-t border-gray-200">
                 <Input
                   label="Room Name"

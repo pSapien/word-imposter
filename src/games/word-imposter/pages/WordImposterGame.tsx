@@ -141,6 +141,7 @@ export function WordImposterGame() {
   const isDiscussion = gameState?.stage === "discussion";
   const players = room?.members.filter((p) => p.role !== "spectator") || [];
   const spectators = room?.members.filter((p) => p.role === "spectator") || [];
+  console.log("gameState", gameState);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
@@ -190,8 +191,17 @@ export function WordImposterGame() {
                 isHost: p.id === room.hostId,
                 isCurrentUser: p.id === currentUserId,
                 hasVoted: false,
+                imposterWord: gameState?.imposterIds.includes(p.id) ? gameState?.imposterWord : "",
               }))}
-              spectators={spectators}
+              spectators={spectators.map((p) => ({
+                id: p.id,
+                displayName: p.displayName,
+                isEliminated: false,
+                isHost: false,
+                isCurrentUser: p.id === currentUserId,
+                hasVoted: false,
+                imposterWord: "",
+              }))}
               currentUserId={currentUserId}
               hostId={room.hostId}
             />

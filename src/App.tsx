@@ -15,13 +15,10 @@ export default function App() {
           {/* Game Selection */}
           <Route path="/" element={<GameSelectionPage />} />
 
-          {/* Game Setup Pages */}
-          <Route path="/game/word-imposter/room" element={<WordImposterRoom />} />
-          <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
+          <Route path="/game/imposter/room" element={<WordImposterRoom />} />
+          <Route path="/game/imposter/room/:roomCode" element={<WordImposterGame />} />
 
-          {/* Game Room Pages */}
-          <Route path="/game/word-imposter/room/:roomCode" element={<WordImposterGame />} />
-          {/* <Route path="/game/codewords/room/:roomCode" element={<CodeWordsRoom />} /> */}
+          <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
         </Routes>
         <Toaster
           position="top-center"

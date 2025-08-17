@@ -12,7 +12,7 @@ export interface GameInfo {
 
 export const AVAILABLE_GAMES: GameInfo[] = [
   {
-    id: "word-imposter",
+    id: "imposter",
     name: "Word Imposter",
     description: "Find the imposter who has a different word",
     icon: "🎭",

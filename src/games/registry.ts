@@ -2,7 +2,7 @@ import type { GameConfig } from "./types";
 import { WordImposterConfig } from "./word-imposter/config";
 
 export const GAME_REGISTRY: Record<string, GameConfig> = {
-  "word-imposter": WordImposterConfig,
+  imposter: WordImposterConfig,
   // 'codenames': CodenamesConfig,
 };
 

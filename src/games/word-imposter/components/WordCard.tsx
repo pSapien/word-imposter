@@ -4,7 +4,6 @@ import { cn } from "@app/utils";
 
 interface WordCardProps {
   word: string;
-  isRevealed?: boolean;
   className?: string;
 }
 
@@ -14,7 +13,7 @@ export function WordCard({ word, className }: WordCardProps) {
   if (!word) {
     return (
       <Card variant="glass" className={cn("p-8 text-center", className)}>
-        <div className="text-4xl font-bold text-gray-400 mb-2">? ? ?</div>
+        <div className="text-5xl font-extrabold text-gray-400 mb-2 animate-pulse">❓❓❓</div>
         <p className="text-sm text-gray-500">Waiting for game to start...</p>
       </Card>
     );
@@ -33,13 +32,18 @@ export function WordCard({ word, className }: WordCardProps) {
       )}
       onClick={handleToggleVisibility}
     >
-      <div
-        className={cn("text-4xl font-bold mb-4 transition-all duration-200", isVisible ? "opacity-100" : "opacity-30")}
-      >
-        {isVisible ? word : "• • •"}
+      <div className={cn("text-5xl font-extrabold mb-4 transition-all duration-200", isVisible ? "" : "text-gray-400")}>
+        {isVisible ? `${word}` : "• • •"}
       </div>
 
-      <p className="text-sm text-gray-600">{isVisible ? "Tap to hide" : "Tap to reveal"}</p>
+      <p
+        className={cn(
+          "text-sm font-medium transition-colors duration-200",
+          isVisible ? "text-gray-800" : "text-gray-500"
+        )}
+      >
+        {isVisible ? "👀 Tap to hide" : "✨ Tap to reveal"}
+      </p>
     </Card>
   );
 }

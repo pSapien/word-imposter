@@ -9,6 +9,7 @@ interface Player {
   isHost?: boolean;
   isCurrentUser?: boolean;
   hasVoted?: boolean;
+  imposterWord: string;
 }
 
 interface PlayerListProps {
@@ -59,7 +60,7 @@ export function PlayerList({
         <div>
           <div className="flex items-center space-x-2">
             <span className={cn("font-medium", player.isEliminated ? "text-gray-500 line-through" : "text-gray-800")}>
-              {player.displayName}
+              {player.displayName} {player.isEliminated && "💀"}
             </span>
 
             {player.id === hostId && (
@@ -67,7 +68,7 @@ export function PlayerList({
             )}
 
             {player.isCurrentUser && (
-              <span className="px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">YOU</span>
+              <span className="px-2 py-1 bg-blue-500/90 text-white text-xs font-bold rounded-full">🫵 YOU</span>
             )}
 
             {isSpectator && (
@@ -75,7 +76,13 @@ export function PlayerList({
             )}
           </div>
 
-          {votingStage && player.hasVoted && <div className="text-xs text-green-600 font-medium">✓ Voted</div>}
+          {votingStage && player.hasVoted && <div className="text-xs text-green-600 font-medium"> ✅ Voted</div>}
+
+          {player.imposterWord && (
+            <span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
+              😈 {player.imposterWord}
+            </span>
+          )}
         </div>
       </div>
 
