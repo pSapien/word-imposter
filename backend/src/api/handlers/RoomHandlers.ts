@@ -69,6 +69,7 @@ export class RoomHandlers {
   handleJoinRoom = (req: AuthenticatedRequest, payload: JoinRoomRequest["payload"]) => {
     try {
       const session = this.services.session.getSession(req.sessionId);
+      console.log("RX: player.role", payload.role);
       const room = this.services.room.join(payload.roomCode, session.profile, payload.role || "player");
       this.broadcastRoomJoined(room);
 

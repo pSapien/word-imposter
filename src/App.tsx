@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast";
 import { SocketProvider } from "./context/SocketContext";
 import { GameSelectionPage } from "./pages/GameSelectionPage";
 import { CodeWordsSetupPage } from "./games/codewords/pages/CodeWordsSetupPage";
-import { WordImposterRoom, WordImposterGame } from "./games/word-imposter";
+import { WordImposterRoom, WordImposterGameUI } from "./games/word-imposter";
 import { Constants } from "./constants.ts";
 import { FloatingConsoleLogs } from "@app/components";
 // Import future game rooms here
@@ -18,7 +18,7 @@ export default function App() {
           <Route path="/" element={<GameSelectionPage />} />
 
           <Route path="/game/imposter/room" element={<WordImposterRoom />} />
-          <Route path="/game/imposter/room/:roomCode" element={<WordImposterGame />} />
+          <Route path="/game/imposter/room/:roomCode" element={<WordImposterGameUI />} />
 
           <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
         </Routes>

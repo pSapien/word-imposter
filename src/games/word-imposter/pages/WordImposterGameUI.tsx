@@ -5,18 +5,20 @@ import type { Room, WordImposterState } from "../../../../shared";
 import { useLocalStorage } from "@uidotdev/usehooks";
 import { Constants } from "@app/constants";
 
-import { WordCard } from "../components";
+import { WordCard } from "../components/index.ts";
 import { FooterSection } from "./FooterSection.tsx";
 import { GameSettingsSection, type GameSettingState } from "./GameSettingsSection.tsx";
-import { Card, CardContent, Button, PlayerList } from "@app/components";
+import { Button, PlayerList } from "@app/components";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { cn } from "@app/utils";
+import { GameResults } from "./GameResults";
 
-export function WordImposterGame() {
+export function WordImposterGameUI() {
   const params = useParams<{ roomCode: string }>();
   const roomCode = params.roomCode as string;
   const navigate = useNavigate();
   const { status, send, currentUserId } = useSocket();
+  const [role] = useLocalStorage<"player" | "host" | "spectator">(Constants.StorageKeys.Role, "player");
   const isConnected = status === "connected" || status === "authenticated";
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -29,6 +31,10 @@ export function WordImposterGame() {
   );
 
   const [gameState, setGameState] = useState<WordImposterState | null>(null);
+
+  const players = room?.members.filter((p) => p.role !== "spectator") || [];
+  const spectators = room?.members.filter((p) => p.role === "spectator") || [];
+  const isVotingPhase = Boolean(gameState?.stage === "voting");
 
   useSocketHandler({
     room_joined: (payload) => {
@@ -51,15 +57,15 @@ export function WordImposterGame() {
   });
 
   useEffect(() => {
-    if (status === "authenticated" && roomCode) {
+    if (status === "authenticated" && roomCode && role) {
+      const userRole = role as "player" | "host" | "spectator";
       send({
         type: "join_room",
-        payload: { roomCode, role: "player" },
+        payload: { roomCode, role: userRole },
       });
     }
-  }, [status, roomCode, send]);
+  }, [status, roomCode, send, role]);
 
-  // Helper variables
   const isHost = room?.hostId === currentUserId;
 
   const handleStartGame = () => {
@@ -73,85 +79,79 @@ export function WordImposterGame() {
   };
 
   const handleStartVoting = () => {
-    // send({
-    //   type: "game_action",
-    //   payload: {
-    //     actionType: "start_voting",
-    //     gameId: gameState?.gameId,
-    //   },
-    // });
+    send({
+      type: "game_action",
+      payload: {
+        type: "start_voting",
+        payload: {},
+      },
+    });
   };
 
-  // const handleFinishVoting = () => {
-  // send({
-  //   type: "game_action",
-  //   payload: {
-  //     actionType: "finish_voting",
-  //     gameId: gameState?.gameId,
-  //   },
-  // });
-  // };
-
-  // const handleNextRound = () => {
-  // send({
-  //   type: "game_action",
-  //   payload: {
-  //     actionType: "next_round",
-  //     gameId: gameState?.gameId,
-  //   },
-  // });
-  // };
-
-  // const handleVotePlayer = (targetId: string) => {
-  //   if (targetId === currentUserId) {
-  //     toast.error("You cannot vote for yourself!");
-  //     return;
-  //   }
-
-  // send({
-  //   type: "game_action",
-  //   payload: {
-  //     actionType: "cast_vote",
-  //     gameId: gameState?.gameId,
-  //     data: { targetId },
-  //   },
-  // });
-  // };
+  function handleEndVoting() {
+    send({
+      type: "game_action",
+      payload: {
+        type: "end_voting",
+        payload: {},
+      },
+    });
+  }
 
   const handleLeaveRoom = () => {
-    send({
-      type: "leave_room",
-      payload: {},
-    });
+    if (room) {
+      send({
+        type: "leave_room",
+        payload: {
+          roomId: room.roomId,
+        },
+      });
+    }
     navigate("/");
   };
 
-  // const handleCategoryToggle = (categoryId: string) => {
-  //   if (!isHost) return;
+  function handleKickPlayer(playerId: string) {
+    if (!room) return toast.error("Not connected to a room");
+    send({
+      type: "kick_room_member",
+      payload: {
+        memberId: playerId,
+        roomId: room.roomId,
+      },
+    });
+  }
 
-  //   setGameSettings((prev) => ({
-  //     ...prev,
-  //     wordCategories: prev.wordCategories.includes(categoryId)
-  //       ? prev.wordCategories.filter((id) => id !== categoryId)
-  //       : [...prev.wordCategories, categoryId],
-  //   }));
-  // };
+  function onVotePlayer(playerId: string) {
+    if (!isVotingPhase) return toast.error("Not voting stage");
+    send({
+      type: "game_action",
+      payload: {
+        type: "cast_vote",
+        payload: {
+          voteeId: playerId,
+        },
+      },
+    });
+  }
 
-  const isDiscussion = gameState?.stage === "discussion";
-  const players = room?.members.filter((p) => p.role !== "spectator") || [];
-  const spectators = room?.members.filter((p) => p.role === "spectator") || [];
-  console.log("gameState", gameState);
+  function handleNextRound() {
+    send({
+      type: "game_action",
+      payload: {
+        type: "start_next_round",
+        payload: {},
+      },
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
-      {/* Animated background */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
         <div className="absolute bottom-20 right-20 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse delay-1000" />
         <div className="absolute top-1/2 left-10 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse delay-500" />
       </div>
 
-      {/* Header */}
       <header className="relative z-10 bg-white/10 backdrop-blur-md border-b border-white/20">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button onClick={handleLeaveRoom} variant="ghost" size="sm" className="text-white hover:bg-white/20">
@@ -179,17 +179,25 @@ export function WordImposterGame() {
           <WordCard word={gameState?.civilianWord || ""} />
         </div>
 
-        {/* Room players always visible */}
+        {gameState && gameState.stage === "results" && room && (
+          <GameResults players={room.members} gameState={gameState} />
+        )}
+
         {room && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <PlayerList
-              players={players.map((p) => ({
+              stage={gameState?.stage || ""}
+              onKickPlayer={handleKickPlayer}
+              onVotePlayer={onVotePlayer}
+              isHost={isHost}
+              role={role}
+              players={sortPlayers(players, room.hostId, gameState?.eliminatedPlayerIds || []).map((p) => ({
                 id: p.id,
                 displayName: p.displayName,
-                isEliminated: false,
+                isEliminated: Boolean(gameState?.eliminatedPlayerIds.includes(p.id)),
                 isHost: p.id === room.hostId,
                 isCurrentUser: p.id === currentUserId,
-                hasVoted: false,
+                hasVoted: Boolean(gameState?.votes[p.id]),
                 imposterWord: gameState?.imposterIds.includes(p.id) ? gameState?.imposterWord : "",
               }))}
               spectators={spectators.map((p) => ({
@@ -202,27 +210,9 @@ export function WordImposterGame() {
                 imposterWord: "",
               }))}
               currentUserId={currentUserId}
-              hostId={room.hostId}
             />
           </div>
         )}
-
-        <Card variant="glass" className="backdrop-blur-xl">
-          <CardContent className="p-6">
-            <div className="text-center space-y-4">
-              <div className="flex items-center justify-center space-x-4">
-                <div
-                  className={cn(
-                    "px-4 py-2 rounded-full text-sm font-semibold",
-                    isDiscussion && "bg-blue-500 text-white"
-                  )}
-                >
-                  Discussion
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {isHost && (
           <GameSettingsSection
@@ -237,9 +227,31 @@ export function WordImposterGame() {
       <FooterSection
         isHost={isHost}
         stage={gameState?.stage ?? ""}
+        noWinner={Boolean(gameState?.roundResults && gameState?.roundResults.winner === null)}
         onStartGame={handleStartGame}
         onStartVoting={handleStartVoting}
+        onEndVoting={handleEndVoting}
+        onNextRound={handleNextRound}
       />
     </div>
   );
+}
+
+function sortPlayers(players: Room["members"], hostId: string, eliminated: string[]): Room["members"] {
+  const eliminatedSet = new Set(eliminated);
+
+  return players.slice().sort((a, b) => {
+    // 1. Host comes first
+    if (a.id === hostId) return -1;
+    if (b.id === hostId) return 1;
+
+    // 2. Non-eliminated players before eliminated
+    const aEliminated = eliminatedSet.has(a.id);
+    const bEliminated = eliminatedSet.has(b.id);
+    if (aEliminated && !bEliminated) return 1;
+    if (!aEliminated && bEliminated) return -1;
+
+    // 3. Otherwise alphabetical
+    return a.id.localeCompare(b.id);
+  });
 }

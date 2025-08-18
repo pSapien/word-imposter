@@ -1,23 +1,37 @@
-import type { WordImposterState } from "../../../../shared/src/index.ts";
+import type { WordImposterState } from "../../../../shared";
 import { Button } from "@app/components";
 
 type Props = {
   stage: WordImposterState["stage"] | "";
+  isHost: boolean;
+  noWinner: boolean;
   onStartGame: () => void;
   onStartVoting: () => void;
-  isHost: boolean;
+  onEndVoting: () => void;
+  onNextRound: () => void;
 };
 
 export function FooterSection(props: Props) {
-  const { isHost, onStartGame, onStartVoting, stage } = props;
+  const { isHost, onStartGame, onStartVoting, onEndVoting, noWinner, stage, onNextRound } = props;
 
   return (
     <footer className="sticky bottom-0 z-20 bg-white/20 backdrop-blur-lg border-t border-white/30">
       <div className="max-w-4xl mx-auto p-4 flex flex-wrap gap-3 justify-center">
-        {/* Discussion phase (only host can start voting) */}
         {isHost && stage === "discussion" && (
           <Button onClick={onStartVoting} variant="primary">
             Start Voting 🗳️
+          </Button>
+        )}
+
+        {isHost && stage === "voting" && (
+          <Button onClick={onEndVoting} variant="primary">
+            End Voting 🛑
+          </Button>
+        )}
+
+        {isHost && stage === "results" && noWinner && (
+          <Button onClick={onNextRound} variant="primary">
+            Next Round 🔄
           </Button>
         )}
 

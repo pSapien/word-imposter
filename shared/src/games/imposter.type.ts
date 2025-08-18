@@ -5,13 +5,12 @@ export interface WordImposterState {
   civilianWord: string;
   imposterWord: string;
   votes: Record<string, string>;
+  eliminatedPlayerIds: string[];
   roundResults?: {
-    eliminatedPlayerId?: string;
     imposterFound: boolean;
     imposterWord: string;
-    civilianWord: string;
-    gameOver: boolean;
-    winner?: "imposters" | "civilians";
+    eliminatedPlayerId: string | null;
+    winner: "imposters" | "civilians" | null;
   };
 }
 

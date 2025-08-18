@@ -3,5 +3,5 @@
 // export { WordImposterGameSettings } from "./components/GameSettings";
 // export { WordCard } from "./components/WordCard";
 
-export { WordImposterGame } from "./pages/WordImposterGame";
+export { WordImposterGameUI } from "./pages/WordImposterGameUI";
 export { WordImposterRoom } from "./pages/WordImposterRoom";

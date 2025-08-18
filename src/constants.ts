@@ -3,6 +3,7 @@ export const Constants = {
     Name: "$$name$$",
     SessionProfile: "$$session_profile$$",
     GameSettings: "$$game_settings$$",
+    Role: "$$role$$",
   },
   Endpoint: "ws://localhost:3000",
   PingInterval: 1000 * 30,

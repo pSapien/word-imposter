@@ -2,6 +2,7 @@ import type { LoginRequest, LoginResponse, SyncLoginRequest } from "./auth.js";
 import type {
   CreateRoomRequest,
   JoinRoomRequest,
+  KickRoomMemberRequest,
   RoomCreatedResponse,
   RoomJoinedResponse,
   LeaveRoomRequest,
@@ -15,6 +16,7 @@ export type ClientRequestEvents =
   | SyncLoginRequest
   | CreateRoomRequest
   | JoinRoomRequest
+  | KickRoomMemberRequest
   | LeaveRoomRequest
   | StartGameRequest
   | GameActionRequest<any>

@@ -7,6 +7,7 @@ export interface RoomMember extends Profile {
 export interface Room {
   roomCode: string;
   roomName: string;
+  roomId: string;
   hostId: string;
   members: RoomMember[];
 }
@@ -23,13 +24,23 @@ export interface JoinRoomRequest {
   type: "join_room";
   payload: {
     roomCode: string;
-    role?: "player" | "spectator";
+    role?: "player" | "spectator" | "host";
   };
 }
 
 export interface LeaveRoomRequest {
   type: "leave_room";
-  payload: {};
+  payload: {
+    roomId: string;
+  };
+}
+
+export interface KickRoomMemberRequest {
+  type: "kick_room_member";
+  payload: {
+    memberId: string;
+    roomId: string;
+  };
 }
 
 export interface RoomJoinedResponse {

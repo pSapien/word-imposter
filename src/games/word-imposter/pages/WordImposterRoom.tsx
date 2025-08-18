@@ -16,6 +16,7 @@ export function WordImposterRoom() {
   const isAuthenticated = status === "authenticated";
 
   const [playerName, setPlayerName] = useLocalStorage(Constants.StorageKeys.Name, "");
+  const [_, setRole] = useLocalStorage(Constants.StorageKeys.Role, "player");
   const [roomCode, setRoomCode] = useState(params.get("roomCode") || "");
   const [roomName, setRoomName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +29,7 @@ export function WordImposterRoom() {
       toast.success(`Welcome, ${payload.profile.displayName}! 🎉`);
     },
     room_created: (payload) => {
+      setRole("host");
       setIsLoading(false);
       toast.success("Room created! 🏠");
       navigate(`/game/imposter/room/${payload.roomCode}`);
@@ -54,6 +56,8 @@ export function WordImposterRoom() {
   }
 
   const handleCreateRoom = () => {
+    setRole("host");
+
     handleAuth();
     if (!roomName.trim()) return toast.error("Please enter a room name");
 
@@ -65,6 +69,8 @@ export function WordImposterRoom() {
   };
 
   const handleJoinRoom = (role: "player" | "spectator") => {
+    setRole(role);
+
     handleAuth();
     if (!roomCode.trim()) return toast.error("Please enter a room code");
 

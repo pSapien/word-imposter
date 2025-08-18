@@ -75,6 +75,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
       start_voting: this.handleStartVote.bind(this),
       cast_vote: this.handleCastVote.bind(this),
       end_voting: this.handleEndVoting.bind(this),
+      start_next_round: this.handleStartNextRound.bind(this),
     };
 
     const handler = handlers[action.type];
@@ -133,16 +134,13 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
       winner,
     };
 
-    if (winner) {
-      this.status = "finished";
-      this.state.stage = "finished";
-    }
+    if (winner) this.status = "finished";
   }
 
   /** Check if the game should end and determine winner */
   private findWinner(): "imposters" | "civilians" | null {
     const activePlayers = this.players.filter(
-      (p) => p.role !== "spectator" && this.state.eliminatedPlayerIds.includes(p.id)
+      (p) => p.role !== "spectator" && !this.state.eliminatedPlayerIds.includes(p.id)
     );
 
     const activeImposters = activePlayers.filter((p) => this.state.imposterIds.includes(p.id));
@@ -162,18 +160,21 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     return null;
   }
 
+  private handleStartNextRound() {
+    this.state.stage = "discussion";
+    this.state.roundResults = undefined;
+    this.state.round += 1;
+    this.state.votes = {};
+  }
+
   /** Randomly assign imposters and words */
   private setupGame(): void {
-    console.log("Setup Game");
     const activePlayers = this.players.filter((p) => p.id && p.role !== "spectator");
-    console.log("Active Players", this.players, activePlayers);
     const imposterCount = 1;
 
     /** Select imposters and get a random word pair */
     this.state.imposterIds = randomArr(activePlayers, imposterCount).map((p) => p.id);
-    console.log("Imposter Choosen", this.state.imposterIds);
     const wordPair = getRandomWordPair(random(this.config.settings.wordCategories));
-    console.log("WordPair choosen", wordPair);
 
     this.state.civilianWord = wordPair.civilianWord;
     this.state.imposterWord = wordPair.imposterWord;

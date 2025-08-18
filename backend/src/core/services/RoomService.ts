@@ -70,6 +70,7 @@ export class RoomService {
       role,
     };
 
+    console.log("joining new member", member);
     room.members.push(member);
     this.memberToRoom.set(profile.id, room.roomId);
 

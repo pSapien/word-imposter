@@ -1,38 +1,35 @@
-import { Card, CardContent, CardHeader } from "../ui/Card";
-import { Button } from "../ui/Button";
-import { cn } from "../../utils";
+import { Button, Card, CardContent, CardHeader } from "@app/components";
+import { cn } from "@app/utils";
+import type { WordImposterState } from "../../../shared";
 
 interface Player {
   id: string;
   displayName: string;
-  isEliminated?: boolean;
-  isHost?: boolean;
-  isCurrentUser?: boolean;
-  hasVoted?: boolean;
+  isEliminated: boolean;
+  isHost: boolean;
+  isCurrentUser: boolean;
+  hasVoted: boolean;
   imposterWord: string;
 }
 
 interface PlayerListProps {
   players: Player[];
-  spectators?: Player[];
-  currentUserId?: string;
-  hostId?: string;
-  canKick?: boolean;
-  canVote?: boolean;
-  votingStage?: boolean;
-  onKickPlayer?: (playerId: string) => void;
-  onVotePlayer?: (playerId: string) => void;
+  spectators: Player[];
+  currentUserId: string;
+  isHost: boolean;
+  stage: WordImposterState["stage"] | "";
+  onKickPlayer: (playerId: string) => void;
+  onVotePlayer: (playerId: string) => void;
   className?: string;
+  role: string;
 }
 
 export function PlayerList({
   players,
   spectators = [],
-  currentUserId,
-  hostId,
-  canKick = false,
-  canVote = false,
-  votingStage = false,
+  isHost,
+  stage,
+  role,
   onKickPlayer,
   onVotePlayer,
   className,
@@ -63,7 +60,7 @@ export function PlayerList({
               {player.displayName} {player.isEliminated && "💀"}
             </span>
 
-            {player.id === hostId && (
+            {player.isHost && (
               <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">👑 HOST</span>
             )}
 
@@ -76,7 +73,7 @@ export function PlayerList({
             )}
           </div>
 
-          {votingStage && player.hasVoted && <div className="text-xs text-green-600 font-medium"> ✅ Voted</div>}
+          {player.hasVoted && <div className="text-xs text-green-600 font-medium"> ✅ Voted</div>}
 
           {player.imposterWord && (
             <span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
@@ -87,13 +84,17 @@ export function PlayerList({
       </div>
 
       <div className="flex items-center space-x-2">
-        {canVote && votingStage && !player.isEliminated && !isSpectator && player.id !== currentUserId && (
-          <Button size="sm" variant="danger" onClick={() => onVotePlayer?.(player.id)}>
-            Vote Out
-          </Button>
-        )}
+        {stage === "voting" &&
+          !player.isEliminated &&
+          !isSpectator &&
+          !player.isCurrentUser &&
+          role !== "spectator" && (
+            <Button size="sm" variant="danger" onClick={() => onVotePlayer(player.id)}>
+              Vote Out
+            </Button>
+          )}
 
-        {canKick && player.id !== currentUserId && player.id !== hostId && (
+        {isHost && !player.isCurrentUser && (
           <Button
             size="sm"
             variant="ghost"
