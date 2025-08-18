@@ -2,6 +2,7 @@ import {
   AuthenticatedRequest,
   GameActionRequest,
   GameStateRequest,
+  KickRoomMemberRequest,
   RoomJoinedResponse,
   RoomMember,
   ServerResponseEvents,
@@ -44,6 +45,7 @@ export class RoomHandlers {
           roomCode: room.roomCode,
           roomName: room.name,
           hostId: room.hostId,
+          roomId: room.roomId,
           members: room.members.map((r) => {
             return {
               displayName: r.displayName,
@@ -54,7 +56,6 @@ export class RoomHandlers {
         },
       });
     } catch (error) {
-      console.error("Error:", error);
       this.wsManager.send(req.connectionId, {
         type: "error",
         payload: {
@@ -70,13 +71,43 @@ export class RoomHandlers {
       const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.join(payload.roomCode, session.profile, payload.role || "player");
       this.broadcastRoomJoined(room);
-      if (room.currentGame) this.handleGetGameState(req, payload);
+
+      if (room.currentGame) {
+        const member = room.members.find((m) => m.id === session.profile.id);
+        room.currentGame.addPlayer(member);
+        this.broadcastGameState(room.currentGame, room.members);
+      }
     } catch (error) {
+      console.error("Error handling joining room:", error);
       this.wsManager.send(req.connectionId, {
         type: "error",
         payload: {
           code: "room.join_failed",
-          message: error instanceof Error ? error.message : "Failed to join room",
+          message: "Failed to join room",
+        },
+      });
+    }
+  };
+
+  handleKickRoomMember = (req: AuthenticatedRequest, payload: KickRoomMemberRequest["payload"]) => {
+    try {
+      const session = this.services.session.getSession(req.sessionId);
+      const hostId = session.profile.id;
+
+      const room = this.services.room.kickMember(hostId, payload.roomId, payload.memberId);
+      this.broadcastRoomJoined(room);
+
+      if (room.currentGame) {
+        room.currentGame.removePlayer(payload.memberId);
+        this.broadcastGameState(room.currentGame, room.members);
+      }
+    } catch (error) {
+      console.error("Error handling kicking room member:", error);
+      this.wsManager.send(req.connectionId, {
+        type: "error",
+        payload: {
+          code: "room.kick_member_failed",
+          message: "Failed to leave room",
         },
       });
     }
@@ -86,9 +117,23 @@ export class RoomHandlers {
     try {
       const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.leave(session.profile.id);
-      if (room) this.broadcastRoomJoined(room);
+      if (!room) return null;
+
+      this.broadcastRoomJoined(room);
+
+      if (room.currentGame) {
+        room.currentGame?.removePlayer(session.profile.id);
+        this.broadcastGameState(room.currentGame, room.members);
+      }
     } catch (error) {
       console.error("Error handling leave room:", error);
+      this.wsManager.send(req.connectionId, {
+        type: "error",
+        payload: {
+          code: "room.leave_failed",
+          message: "Failed to leave room",
+        },
+      });
     }
   };
 
@@ -182,6 +227,7 @@ export class RoomHandlers {
         roomCode: room.roomCode,
         roomName: room.name,
         hostId: room.hostId,
+        roomId: room.roomId,
         members: room.members.map((r) => {
           return {
             displayName: r.displayName,

@@ -1,4 +1,4 @@
-import { AuthHandlers, RoomHandlers, GameHandlers } from "../handlers";
+import { AuthHandlers, RoomHandlers } from "../handlers";
 import { AuthMiddleware } from "../../core";
 import type { ClientRequestEvents } from "@imposter/shared";
 
@@ -7,7 +7,6 @@ type ClientEvents = ClientRequestEvents["type"];
 type Handlers = {
   auth: AuthHandlers;
   room: RoomHandlers;
-  game: GameHandlers;
 };
 
 type Middlewares = {
@@ -37,6 +36,11 @@ export class MessageRouter {
     );
 
     this.routes.set(
+      "kick_room_member",
+      this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleKickRoomMember(req, payload))
+    );
+
+    this.routes.set(
       "leave_room",
       this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleLeaveRoom(req))
     );
@@ -51,15 +55,10 @@ export class MessageRouter {
       this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleGetGameState(req, payload))
     );
 
-    // this.routes.set(
-    //   "game_action",
-    //   this.authMiddleware.requireAuth((req, payload) => this.gameHandlers.handleGameAction(req.connectionId, payload))
-    // );
-
-    // this.routes.set(
-    //   "get_game_state",
-    //   this.authMiddleware.requireAuth((req, payload) => this.gameHandlers.handleGetGameState(req.connectionId))
-    // );
+    this.routes.set(
+      "game_action",
+      this.middlewares.auth.requireAuth((req, payload) => this.handlers.room.handleGameAction(req, payload))
+    );
   }
 
   route(connectionId: string, message: ClientRequestEvents): void {

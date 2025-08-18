@@ -3,7 +3,6 @@ import { ServerResponseEvents } from "@imposter/shared";
 
 import { AuthHandlers } from "./api/handlers/AuthHandlers.js";
 import { RoomHandlers } from "./api/handlers/RoomHandlers.js";
-import { GameHandlers } from "./api/handlers/GameHandlers.js";
 import { MessageRouter } from "./api/routes/MessageRouter.js";
 
 const services = {
@@ -20,7 +19,6 @@ const middlewares = {
 const routeHandlers = {
   auth: new AuthHandlers(wsManager, services),
   room: new RoomHandlers(wsManager, services),
-  game: new GameHandlers(wsManager, services),
 };
 
 const messageRouter = new MessageRouter(middlewares, routeHandlers);

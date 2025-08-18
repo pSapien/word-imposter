@@ -54,24 +54,15 @@ export class RoomService {
     return room;
   }
 
-  join(roomCode: string, profile: GuestProfile, role: "player" | "spectator" = "player"): GameRoom {
+  join(roomCode: string, profile: GuestProfile, role: "player" | "spectator" = "player") {
     const roomId = this.roomCodes.get(roomCode);
     if (!roomId) throw new Error("Room not found");
 
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
-    if (room.members.some((m) => m.id === profile.id)) {
-      return room;
-    }
-
-    if (room.members.length >= room.settings.maxMembers) {
-      throw new Error("Room is full");
-    }
-
-    if (role === "spectator" && !room.settings.allowSpectators) {
-      throw new Error("Spectators not allowed");
-    }
+    const memberIndex = room.members.findIndex((m) => m.id === profile.id);
+    if (memberIndex >= 0) room.members.splice(memberIndex, 1);
 
     const member: RoomMember = {
       id: profile.id,
@@ -125,8 +116,8 @@ export class RoomService {
     return roomId ? this.rooms.get(roomId) || null : null;
   }
 
-  kickMember(hostId: string, roomCode: string, targetProfileId: string): GameRoom {
-    const room = this.getRoomByCode(roomCode);
+  kickMember(hostId: string, roomId: string, targetProfileId: string): GameRoom {
+    const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
     if (room.hostId !== hostId) throw new Error("Only host can kick members");
