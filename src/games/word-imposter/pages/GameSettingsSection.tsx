@@ -34,7 +34,7 @@ export function GameSettingsSection({ playersCount, isHost, state, onChange }: P
         <div>
           <h4 className="font-semibold text-gray-700 mb-3">Word Categories</h4>
           <div className="grid grid-cols-2 gap-2">
-            {WORD_CATEGORIES.slice(0, 8).map((category) => (
+            {WORD_CATEGORIES.map((category) => (
               <button
                 key={category.id}
                 onClick={() => handleCategoryChange(category.id)}

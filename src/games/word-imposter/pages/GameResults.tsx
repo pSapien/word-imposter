@@ -99,9 +99,6 @@ export function GameResults({ gameState, players }: Props) {
               ) : (
                 <div className="space-y-2">
                   <p className="text-blue-300 text-lg font-bold">😇 They were a civilian!</p>
-                  <p className="text-white/80">
-                    Their word was: <strong className="text-blue-300">"{gameState.roundResults?.imposterWord}"</strong>
-                  </p>
                 </div>
               )}
             </div>

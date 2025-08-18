@@ -123,6 +123,7 @@ export function WordImposterGameUI() {
 
   function onVotePlayer(playerId: string) {
     if (!isVotingPhase) return toast.error("Not voting stage");
+
     send({
       type: "game_action",
       payload: {
@@ -143,6 +144,10 @@ export function WordImposterGameUI() {
       },
     });
   }
+
+  const voteCount = gameState?.votes ? Object.keys(gameState.votes).length : 0;
+  const totalActivePlayers =
+    room?.members.filter((r) => !gameState?.eliminatedPlayerIds.includes(r.id) && r.role !== "spectator").length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
@@ -179,6 +184,37 @@ export function WordImposterGameUI() {
           <WordCard word={gameState?.civilianWord || ""} />
         </div>
 
+        {gameState?.stage === "voting" && (
+          <>
+            <div className="bg-white/20 rounded-lg p-3">
+              <div className="text-white text-sm">
+                Votes cast: {voteCount}/{totalActivePlayers}
+              </div>
+              <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+                <div
+                  className="bg-white rounded-full h-2 transition-all duration-300"
+                  style={{ width: `${(voteCount / totalActivePlayers) * 100}%` }}
+                />
+              </div>
+            </div>
+            <div className="text-sm text-white/80 text-center">
+              {(() => {
+                if (currentUserId in gameState.votes) {
+                  const voteeId = gameState.votes[currentUserId];
+                  const votedMember = room?.members.find((r) => r.id === voteeId);
+
+                  if (votedMember) return `✅ You have voted: ${votedMember.displayName}`;
+                  return `🤷‍♂️ Skipped Voting!`;
+                }
+
+                if (role === "spectator") return null;
+
+                return "⏳ Cast your vote below";
+              })()}
+            </div>
+          </>
+        )}
+
         {gameState && gameState.stage === "results" && room && (
           <GameResults players={room.members} gameState={gameState} />
         )}
@@ -191,13 +227,14 @@ export function WordImposterGameUI() {
               onVotePlayer={onVotePlayer}
               isHost={isHost}
               role={role}
+              isEliminated={Boolean(gameState?.imposterIds.includes(currentUserId))}
               players={sortPlayers(players, room.hostId, gameState?.eliminatedPlayerIds || []).map((p) => ({
                 id: p.id,
                 displayName: p.displayName,
                 isEliminated: Boolean(gameState?.eliminatedPlayerIds.includes(p.id)),
                 isHost: p.id === room.hostId,
                 isCurrentUser: p.id === currentUserId,
-                hasVoted: Boolean(gameState?.votes[p.id]),
+                hasVoted: Boolean(p.id in (gameState?.votes || {})),
                 imposterWord: gameState?.imposterIds.includes(p.id) ? gameState?.imposterWord : "",
               }))}
               spectators={spectators.map((p) => ({

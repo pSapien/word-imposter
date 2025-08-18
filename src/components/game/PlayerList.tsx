@@ -17,6 +17,7 @@ interface PlayerListProps {
   spectators: Player[];
   currentUserId: string;
   isHost: boolean;
+  isEliminated: boolean;
   stage: WordImposterState["stage"] | "";
   onKickPlayer: (playerId: string) => void;
   onVotePlayer: (playerId: string) => void;
@@ -32,6 +33,7 @@ export function PlayerList({
   role,
   onKickPlayer,
   onVotePlayer,
+  isEliminated,
   className,
 }: PlayerListProps) {
   const renderPlayer = (player: Player, isSpectator = false) => (
@@ -88,11 +90,18 @@ export function PlayerList({
           !player.isEliminated &&
           !isSpectator &&
           !player.isCurrentUser &&
+          !isEliminated &&
           role !== "spectator" && (
             <Button size="sm" variant="danger" onClick={() => onVotePlayer(player.id)}>
               Vote Out
             </Button>
           )}
+
+        {stage === "voting" && !player.isEliminated && !isSpectator && player.isCurrentUser && role !== "spectator" && (
+          <Button size="sm" variant="secondary" onClick={() => onVotePlayer("")}>
+            Skip Vote
+          </Button>
+        )}
 
         {isHost && !player.isCurrentUser && (
           <Button
