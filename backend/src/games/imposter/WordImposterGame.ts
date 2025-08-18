@@ -174,6 +174,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
 
     /** Select imposters and get a random word pair */
     this.state.imposterIds = randomArr(activePlayers, imposterCount).map((p) => p.id);
+    console.log("WordCategories are:", this.config.settings);
     const wordPair = getRandomWordPair(random(this.config.settings.wordCategories));
 
     this.state.civilianWord = wordPair.civilianWord;
