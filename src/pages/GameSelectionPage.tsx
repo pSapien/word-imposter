@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "../components/ui/Card";
 import { AVAILABLE_GAMES } from "../games/game-registry";
-import { cn } from "../utils/cn";
+import { Card, CardContent } from "@app/components";
+import { cn } from "@app/utils";
 
 export function GameSelectionPage() {
   const navigate = useNavigate();
@@ -24,44 +24,45 @@ export function GameSelectionPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {AVAILABLE_GAMES.map((game) => (
-            <Card
-              key={game.id}
-              variant="glass"
-              className={cn(
-                "cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95",
-                "backdrop-blur-xl border-white/20 hover:border-white/40"
-              )}
-              onClick={() => handleGameSelect(game.id)}
-            >
-              <CardContent className="p-8">
-                <div
-                  className={cn(
-                    "w-full h-48 rounded-xl mb-6 flex items-center justify-center",
-                    "bg-gradient-to-br",
-                    game.color,
-                    "shadow-lg"
-                  )}
-                >
-                  <span className="text-6xl">{game.icon}</span>
-                </div>
-
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">{game.name}</h2>
-                  <p className="text-gray-600 mb-4">{game.description}</p>
-
-                  <div className="flex justify-between text-sm text-gray-500 mb-4">
-                    <span>
-                      👥 {game.minPlayers}-{game.maxPlayers} players
-                    </span>
-                    <span>⏱️ {game.estimatedTime}</span>
+            <button onClick={() => handleGameSelect(game.id)}>
+              <Card
+                key={game.id}
+                variant="glass"
+                className={cn(
+                  "cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95",
+                  "backdrop-blur-xl border-white/20 hover:border-white/40"
+                )}
+              >
+                <CardContent className="p-8">
+                  <div
+                    className={cn(
+                      "w-full h-48 rounded-xl mb-6 flex items-center justify-center",
+                      "bg-gradient-to-br",
+                      game.color,
+                      "shadow-lg"
+                    )}
+                  >
+                    <span className="text-6xl">{game.icon}</span>
                   </div>
 
-                  <div className="bg-white/50 rounded-lg p-3">
-                    <span className="text-gray-700 font-medium">Tap to play →</span>
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">{game.name}</h2>
+                    <p className="text-gray-600 mb-4">{game.description}</p>
+
+                    <div className="flex justify-between text-sm text-gray-500 mb-4">
+                      <span>
+                        👥 {game.minPlayers}-{game.maxPlayers} players
+                      </span>
+                      <span>⏱️ {game.estimatedTime}</span>
+                    </div>
+
+                    <div className="bg-white/50 rounded-lg p-3">
+                      <span className="text-gray-700 font-medium">Tap to play →</span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </button>
           ))}
         </div>
 
