@@ -1,6 +1,7 @@
 export const Constants = {
   StorageKeys: {
     Name: "$$name$$",
+    RoomName: "$$roomName$$",
     SessionProfile: "$$session_profile$$",
     GameSettings: "$$game_settings$$",
     Role: "$$role$$",

@@ -7,7 +7,7 @@ type Props = {
   players: Array<{
     id: string;
     displayName: string;
-    role: "spectator" | "host" | "player";
+    role: string;
   }>;
 };
 
@@ -21,8 +21,6 @@ export function GameResults({ gameState, players }: Props) {
   });
 
   const sortedVotes = Object.entries(voteCount).sort(([, countA], [, countB]) => countB - countA);
-
-  console.log("gameResults", gameState.roundResults);
 
   return (
     <Card variant="glass" className="bg-gradient-to-br from-purple-500 via-purple-600">
