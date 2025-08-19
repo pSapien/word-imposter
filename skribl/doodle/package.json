@@ -1,0 +1,15 @@
+{
+  "name": "skribl-app",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Skribl-style drawing & guessing game with reconnection and bucket fill",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.0"
+  }
+}

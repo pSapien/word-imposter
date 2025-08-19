@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Skribl v2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="join-screen" class="card">
+      <h1>🎨 Skribl</h1>
+      <div class="row">
+        <label>Name</label>
+        <input id="name" maxlength="18" placeholder="Your name"/>
+      </div>
+      <div class="row">
+        <label>Room Code</label>
+        <input id="room" maxlength="8" placeholder="ABCD"/>
+        <button id="gen-room">Random</button>
+      </div>
+      <button id="join">Join</button>
+      <p class="hint">Reconnect by entering the same name and room.</p>
+    </div>
+
+    <div id="game" class="hidden">
+      <header>
+        <div class="left">
+          <strong id="status">Waiting…</strong>
+          <span id="timer"></span>
+          <span id="word-mask"></span>
+        </div>
+        <div class="right">
+          <button id="start" class="primary hidden">Start Game</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="canvas-wrap">
+          <div class="toolbar">
+            <button id="tool-pen" class="active">Pen</button>
+            <button id="tool-bucket">Bucket</button>
+            <button id="eraser">Eraser</button>
+            <input type="color" id="color" value="#000000" />
+            <input type="range" id="size" min="1" max="30" value="3"/>
+            <button id="undo" title="Undo last">Undo</button>
+            <button id="clear">Clear</button>
+          </div>
+          <canvas id="canvas" width="900" height="600"></canvas>
+          <div id="word-choices" class="choices hidden"></div>
+        </section>
+
+        <aside class="sidebar">
+          <div class="players" id="players"></div>
+          <div class="chat" id="chat"></div>
+          <div class="chat-input">
+            <input id="chat-text" placeholder="Type your guess…" />
+            <button id="send">Send</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
