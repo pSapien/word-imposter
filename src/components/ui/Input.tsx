@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { cn } from "../../utils/cn";
+import { cn } from "@app/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   name: string;
@@ -21,13 +21,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, labe
           "focus:outline-none focus:ring-4 focus:ring-blue-300 focus:border-blue-500",
           "transition-all duration-200 placeholder-gray-500",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          error && "border-red-500 focus:ring-red-300 focus:border-red-500",
+          error && "border-red-500 focus:ring-red-500 focus:border-red-500",
           className
         )}
         ref={ref}
         {...props}
       />
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {/* Reserve space for error, such that whenever their is error it does not shift layout */}
+      <p
+        className={cn(
+          "mt-2 text-sm min-h-[1.25rem] transition-opacity duration-200", // ~line-height for one line of text
+          error ? "opacity-100  text-red-600" : "text-transparent"
+        )}
+      >
+        {error || "placeholder"}
+      </p>
     </div>
   );
 });

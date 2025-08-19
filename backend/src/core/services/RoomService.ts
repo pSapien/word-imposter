@@ -1,6 +1,6 @@
 import type { GameEngine } from "../GameEngine.js";
 import type { GuestProfile } from "./SessionService.js";
-import { RoomMember } from "@imposter/shared";
+import type { RoomMember } from "@imposter/shared";
 
 export interface GameRoom {
   roomId: string;

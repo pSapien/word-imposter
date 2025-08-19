@@ -1,5 +1,5 @@
-import { SessionProfile, SessionService, WebSocketManager } from "../../core";
-import type { LoginRequest, ServerResponseEvents, SyncLoginRequest } from "@imposter/shared";
+import type { SessionProfile, SessionService, WebSocketManager } from "../../core";
+import { Validators, type LoginRequest, type ServerResponseEvents } from "@imposter/shared";
 
 type Services = {
   session: SessionService;
@@ -21,32 +21,26 @@ export class AuthHandlers {
     });
   }
 
-  handleSyncLogin = (connectionId: string, payload: SyncLoginRequest["payload"]) => {
-    const session = this.services.session.getSession(payload.sessionId);
-
-    if (!session) {
-      this.wsManager.send(connectionId, {
-        type: "error",
-        payload: {
-          code: "auth.session_expire",
-          message: "Session Expiry",
-        },
-      });
-      return;
-    }
-
-    this.services.session.updateSession({
-      connectionId,
-      profile: session.profile,
-      sessionId: payload.sessionId,
-    });
-
-    this.sendLoginSuccess(connectionId, session);
-  };
-
   handleLogin = (connectionId: string, payload: LoginRequest["payload"]) => {
     try {
-      const session = this.services.session.createGuestSession(connectionId, payload.displayName);
+      Validators.validatePlayerName(payload.displayName);
+
+      let session: SessionProfile | null = payload.sessionId
+        ? this.services.session.getSession(payload.sessionId)
+        : null;
+
+      if (session) {
+        /** if previous session exists, we update it with new profile */
+        session = this.services.session.updateSession({
+          connectionId,
+          profile: { ...session.profile, displayName: payload.displayName },
+          sessionId: payload.sessionId!,
+        });
+      } else {
+        /** if no prev session exists, we create a new guest session */
+        session = this.services.session.createGuestSession(connectionId, payload.displayName);
+      }
+
       this.sendLoginSuccess(connectionId, session);
     } catch (error) {
       this.wsManager.send(connectionId, {

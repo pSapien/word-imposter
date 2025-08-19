@@ -22,7 +22,6 @@ export class MessageRouter {
 
   private setupRoutes() {
     this.routes.set("login", this.handlers.auth.handleLogin);
-    this.routes.set("sync_login", this.handlers.auth.handleSyncLogin);
     this.routes.set("ping", this.handlePing);
 
     this.routes.set(

@@ -9,8 +9,9 @@ import {
   RoomMember,
   ServerResponseEvents,
   StartGameRequest,
+  Validators,
 } from "@imposter/shared";
-import { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "../../core";
+import type { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "../../core";
 import { WordImposterGameEngine } from "../../games/imposter/WordImposterGame.js";
 
 type Services = {
@@ -23,6 +24,8 @@ export class RoomHandlers {
 
   handleCreateRoom = (req: AuthenticatedRequest, payload: CreateRoomRequest["payload"]) => {
     try {
+      Validators.validateRoomName(payload.roomName);
+
       const session = this.services.session.getSession(req.sessionId);
       const room = this.services.room.create(session.profile, payload.roomName);
 
