@@ -8,12 +8,15 @@ import { Constants } from "@app/constants";
 import { WordCard } from "../components/index.ts";
 import { FooterSection } from "./FooterSection.tsx";
 import { GameSettingsSection, type GameSettingState } from "./GameSettingsSection.tsx";
-import { Button, PlayerList } from "@app/components";
+import { Button, PlayerList, useModal } from "@app/components";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { cn } from "@app/utils";
 import { GameResults } from "./GameResults";
+import { Settings } from "lucide-react";
 
 export function WordImposterGameUI() {
+  const settingsModal = useModal(GameSettingsSection);
+
   const params = useParams<{ roomName: string }>();
   const roomName = params.roomName as string;
   const navigate = useNavigate();
@@ -35,6 +38,7 @@ export function WordImposterGameUI() {
   const players = room?.members.filter((p) => p.role !== "spectator") || [];
   const spectators = room?.members.filter((p) => p.role === "spectator") || [];
   const isVotingPhase = Boolean(gameState?.stage === "voting");
+  const isHost = room?.hostId === currentUserId;
 
   useSocketHandler({
     room_joined: (payload) => {
@@ -65,8 +69,6 @@ export function WordImposterGameUI() {
       });
     }
   }, [status, send, role]);
-
-  const isHost = room?.hostId === currentUserId;
 
   const handleStartGame = () => {
     send({
@@ -174,7 +176,20 @@ export function WordImposterGameUI() {
               {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
             </div>
           </div>
-          <div className="w-20" />
+
+          {isHost && (
+            <button
+              onClick={() => {
+                settingsModal.show({
+                  onChange: setHostGameSettings,
+                  playersCount: room?.members?.length || 1,
+                  state: hostGameSettings,
+                });
+              }}
+            >
+              <Settings color="white" height={24} width={24} />
+            </button>
+          )}
         </div>
       </header>
       {/* Scrollable Content */}
@@ -246,15 +261,6 @@ export function WordImposterGameUI() {
               currentUserId={currentUserId}
             />
           </div>
-        )}
-
-        {isHost && (
-          <GameSettingsSection
-            isHost={isHost}
-            state={hostGameSettings}
-            onChange={setHostGameSettings}
-            playersCount={room?.members?.length || 1}
-          />
         )}
       </main>
 
