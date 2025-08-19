@@ -133,7 +133,8 @@ export function GameResults({ gameState, players }: Props) {
 
           <div className="space-y-4">
             {sortedVotes.map(([votedForId, count], index) => {
-              const votedFor = players.find((p) => p.id === votedForId);
+              let votedFor = players.find((p) => p.id === votedForId);
+              if (!votedFor) votedFor = { displayName: "Skipped Voting", id: "1", role: "" };
               const voters = Object.entries(gameState.votes)
                 .filter(([_, votedId]) => votedId === votedForId)
                 .map(([voterId]) => players.find((p) => p.id === voterId)?.displayName);
@@ -147,7 +148,7 @@ export function GameResults({ gameState, players }: Props) {
                     isTopVoted ? "bg-white/20 border-2 border-red-400/50 shadow-lg" : "bg-white/10 hover:bg-white/15"
                   }`}
                 >
-                  {isTopVoted && (
+                  {isTopVoted && eliminatedPlayer && (
                     <div className="absolute -top-2 -left-2">
                       <Target className="w-8 h-8 text-red-400 drop-shadow-md" />
                     </div>
@@ -157,7 +158,7 @@ export function GameResults({ gameState, players }: Props) {
                     <div
                       className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center text-white font-black",
-                        isTopVoted
+                        isTopVoted && eliminatedPlayer
                           ? "bg-gradient-to-br from-red-500 via-red-600 to-red-500"
                           : "bg-gradient-to-r from-blue-500 to-purple-600"
                       )}
@@ -166,13 +167,17 @@ export function GameResults({ gameState, players }: Props) {
                     </div>
                     <div>
                       <div className="flex items-center space-x-4">
-                        <span className={cn("text-medium", isTopVoted ? "text-red-100" : "text-white")}>
+                        <span
+                          className={cn("text-medium", isTopVoted && eliminatedPlayer ? "text-red-100" : "text-white")}
+                        >
                           {votedFor?.displayName}
                         </span>
                         <span
                           className={cn(
                             "px-4 py-2 text-white text-sm font-bold rounded-full shadow-md border-2",
-                            isTopVoted ? "bg-red-500 border-red-300" : "bg-slate-600 border-slate-400"
+                            isTopVoted && eliminatedPlayer
+                              ? "bg-red-500 border-red-300"
+                              : "bg-slate-600 border-slate-400"
                           )}
                         >
                           {count} vote{count !== 1 ? "s" : ""}
