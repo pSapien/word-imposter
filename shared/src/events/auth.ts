@@ -6,14 +6,8 @@ export interface Profile {
 export interface LoginRequest {
   type: "login";
   payload: {
+    sessionId?: string;
     displayName: string;
-  };
-}
-
-export interface SyncLoginRequest {
-  type: "sync_login";
-  payload: {
-    sessionId: string;
   };
 }
 
