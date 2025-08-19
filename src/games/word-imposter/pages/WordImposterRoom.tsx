@@ -45,7 +45,6 @@ export function WordImposterRoom() {
       toast.success(`Welcome, ${payload.profile.displayName}! 🎉`);
     },
     room_created: (payload) => {
-      setRole("host");
       setIsLoading(false);
       navigate(`/game/imposter/room/${payload.roomName}`);
     },
@@ -61,6 +60,7 @@ export function WordImposterRoom() {
 
   function handleCreateOrJoinedRoom(action: "create" | "join", role: string) {
     setIsLoading(true);
+    setRole(role);
 
     login(playerName);
 
