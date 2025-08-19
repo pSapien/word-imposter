@@ -67,6 +67,15 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   }
 
   validateGameAction(playerId: string, action: GameAction<any>) {
+    const player = this.players.find((player) => player.id === playerId);
+    if (!player) throw new Error("Player not found");
+
+    if (action.type === "cast_vote") {
+      if (this.state.stage !== "voting") throw new Error("This is not the stage for voting");
+      if (this.state.eliminatedPlayerIds.includes(player.id)) throw new Error("Not allowed to vote");
+      if (player.role === "spectator") throw new Error("Spectator are not allowed to vote");
+    }
+
     return true;
   }
 
