@@ -177,7 +177,6 @@ export function WordImposterGameUI() {
           <div className="w-20" />
         </div>
       </header>
-
       {/* Scrollable Content */}
       <main className="flex-1 overflow-y-auto relative z-10 max-w-4xl mx-auto p-4 space-y-6 w-full">
         <div className="sticky top-4 z-20">
@@ -260,6 +259,9 @@ export function WordImposterGameUI() {
           />
         )}
       </main>
+
+      {/* empty div so that the main content does not overlap the sticky footer  */}
+      <div className="h-24" />
 
       <FooterSection
         isHost={isHost}
