@@ -1,7 +1,9 @@
 import {
   AuthenticatedRequest,
+  CreateRoomRequest,
   GameActionRequest,
   GameStateRequest,
+  JoinRoomRequest,
   KickRoomMemberRequest,
   RoomJoinedResponse,
   RoomMember,
@@ -10,21 +12,6 @@ import {
 } from "@imposter/shared";
 import { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "../../core";
 import { WordImposterGameEngine } from "../../games/imposter/WordImposterGame.js";
-
-export interface CreateRoomRequest {
-  type: "create_room";
-  payload: {
-    roomName: string;
-  };
-}
-
-export interface JoinRoomRequest {
-  type: "join_room";
-  payload: {
-    roomCode: string;
-    role?: "player" | "spectator";
-  };
-}
 
 type Services = {
   session: SessionService;
@@ -42,7 +29,6 @@ export class RoomHandlers {
       this.wsManager.send(req.connectionId, {
         type: "room_created",
         payload: {
-          roomCode: room.roomCode,
           roomName: room.name,
           hostId: room.hostId,
           roomId: room.roomId,
@@ -60,7 +46,7 @@ export class RoomHandlers {
         type: "error",
         payload: {
           code: "room.create_failed",
-          message: "Failed to create room",
+          message: error.message ?? "Failed to create room",
         },
       });
     }
@@ -69,8 +55,7 @@ export class RoomHandlers {
   handleJoinRoom = (req: AuthenticatedRequest, payload: JoinRoomRequest["payload"]) => {
     try {
       const session = this.services.session.getSession(req.sessionId);
-      console.log("RX: player.role", payload.role);
-      const room = this.services.room.join(payload.roomCode, session.profile, payload.role || "player");
+      const room = this.services.room.join(payload.roomName, session.profile, payload.role);
       this.broadcastRoomJoined(room);
 
       if (room.currentGame) {
@@ -225,7 +210,6 @@ export class RoomHandlers {
     const event: RoomJoinedResponse = {
       type: "room_joined",
       payload: {
-        roomCode: room.roomCode,
         roomName: room.name,
         hostId: room.hostId,
         roomId: room.roomId,

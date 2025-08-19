@@ -18,7 +18,7 @@ export default function App() {
           <Route path="/" element={<GameSelectionPage />} />
 
           <Route path="/game/imposter/room" element={<WordImposterRoom />} />
-          <Route path="/game/imposter/room/:roomCode" element={<WordImposterGameUI />} />
+          <Route path="/game/imposter/room/:roomName" element={<WordImposterGameUI />} />
 
           <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
         </Routes>

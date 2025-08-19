@@ -14,8 +14,8 @@ import { cn } from "@app/utils";
 import { GameResults } from "./GameResults";
 
 export function WordImposterGameUI() {
-  const params = useParams<{ roomCode: string }>();
-  const roomCode = params.roomCode as string;
+  const params = useParams<{ roomName: string }>();
+  const roomName = params.roomName as string;
   const navigate = useNavigate();
   const { status, send, currentUserId } = useSocket();
   const [role] = useLocalStorage<"player" | "host" | "spectator">(Constants.StorageKeys.Role, "player");
@@ -57,14 +57,14 @@ export function WordImposterGameUI() {
   });
 
   useEffect(() => {
-    if (status === "authenticated" && roomCode && role) {
+    if (status === "authenticated" && role) {
       const userRole = role as "player" | "host" | "spectator";
       send({
         type: "join_room",
-        payload: { roomCode, role: userRole },
+        payload: { roomName: roomName, role: userRole },
       });
     }
-  }, [status, roomCode, send, role]);
+  }, [status, send, role]);
 
   const isHost = room?.hostId === currentUserId;
 
@@ -164,7 +164,7 @@ export function WordImposterGameUI() {
           </Button>
           <div className="text-center">
             <h1 className="text-xl font-bold text-white">🎭 Word Imposter</h1>
-            <div className="text-sm text-white/80">Room: {roomCode}</div>
+            <div className="text-sm text-white/80">Room: {roomName}</div>
             <div
               className={cn(
                 "text-sm px-3 py-1 rounded-full inline-block mt-1",
