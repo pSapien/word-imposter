@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card } from "../../../components/ui/Card";
+import { Card } from "@app/components";
 import { cn } from "@app/utils";
 
 interface WordCardProps {
@@ -27,13 +27,21 @@ export function WordCard({ word, className }: WordCardProps) {
     <Card
       variant="glass"
       className={cn(
-        "p-8 text-center cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95",
+        "p-4 text-center cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95",
         className
       )}
       onClick={handleToggleVisibility}
     >
-      <div className={cn("text-5xl font-extrabold mb-4 transition-all duration-200", isVisible ? "" : "text-gray-400")}>
-        {isVisible ? `${word}` : "• • •"}
+      {/* Fixed height container prevents layout shift */}
+      <div className="h-[2rem] flex items-center justify-center mb-4">
+        <span
+          className={cn(
+            "text-2xl font-bold transition-all duration-200 tracking-wide",
+            isVisible ? "text-black" : "text-gray-400 font-mono"
+          )}
+        >
+          {isVisible ? word : "•••"}
+        </span>
       </div>
 
       <p

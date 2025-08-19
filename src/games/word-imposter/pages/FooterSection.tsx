@@ -22,7 +22,7 @@ export function FooterSection(props: Props) {
   };
 
   return (
-    <footer className="fixed bottom-0 w-full z-20 bg-white/20 backdrop-blur-lg border-t border-white/30">
+    <footer className="fixed bottom-0 w-full z-20 backdrop-blur-2xl border-t border-white/30">
       <div className="max-w-4xl mx-auto p-4 flex flex-wrap gap-3 justify-center">
         {isHost && stage === "discussion" && (
           <Button onClick={onStartVoting} variant="primary">
