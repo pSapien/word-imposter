@@ -1,4 +1,3 @@
-import { v4 as uuid } from "uuid";
 import type { GameEngine } from "../GameEngine.js";
 import type { GuestProfile } from "./SessionService.js";
 import { RoomMember } from "@imposter/shared";
@@ -26,10 +25,10 @@ export class RoomService {
 
   create(host: GuestProfile, roomName: string): GameRoom {
     const roomCode = this.generateRoomCode();
-    const room: GameRoom = {
-      roomId: uuid(),
-      roomCode,
+    const newRoom: GameRoom = {
+      roomId: roomName.trim(),
       name: roomName.trim(),
+      roomCode,
       hostId: host.id,
       members: [
         {
@@ -47,17 +46,16 @@ export class RoomService {
       },
     };
 
-    this.rooms.set(room.roomId, room);
-    this.roomCodes.set(roomCode, room.roomId);
-    this.memberToRoom.set(host.id, room.roomId);
+    if (this.rooms.has(newRoom.roomId)) throw new Error("Room already created!");
 
-    return room;
+    this.rooms.set(newRoom.roomId, newRoom);
+    this.roomCodes.set(roomCode, newRoom.roomId);
+    this.memberToRoom.set(host.id, newRoom.roomId);
+
+    return newRoom;
   }
 
-  join(roomCode: string, profile: GuestProfile, role: "player" | "spectator" = "player") {
-    const roomId = this.roomCodes.get(roomCode);
-    if (!roomId) throw new Error("Room not found");
-
+  join(roomId: string, profile: GuestProfile, role: string) {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
@@ -70,7 +68,6 @@ export class RoomService {
       role,
     };
 
-    console.log("joining new member", member);
     room.members.push(member);
     this.memberToRoom.set(profile.id, room.roomId);
 
@@ -87,21 +84,12 @@ export class RoomService {
     const memberIndex = room.members.findIndex((m) => m.id === profileId);
     if (memberIndex === -1) return null;
 
-    const leavingMember = room.members[memberIndex];
     room.members.splice(memberIndex, 1);
     this.memberToRoom.delete(profileId);
 
-    // Handle host leaving
-    if (leavingMember.role === "host") {
-      const nextHost = room.members.find((m) => m.role === "player");
-      if (nextHost) {
-        nextHost.role = "host";
-        room.hostId = nextHost.id;
-      } else if (room.members.length === 0) {
-        this.rooms.delete(roomId);
-        this.roomCodes.delete(room.roomCode);
-        return null;
-      }
+    if (room.members.length === 0) {
+      this.rooms.delete(roomId);
+      this.roomCodes.delete(room.roomCode);
     }
 
     return room;

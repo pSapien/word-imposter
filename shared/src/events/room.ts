@@ -1,11 +1,10 @@
 import type { Profile } from "./auth.js";
 
 export interface RoomMember extends Profile {
-  role: "player" | "host" | "spectator";
+  role: string;
 }
 
 export interface Room {
-  roomCode: string;
   roomName: string;
   roomId: string;
   hostId: string;
@@ -15,7 +14,6 @@ export interface Room {
 export interface CreateRoomRequest {
   type: "create_room";
   payload: {
-    gameName: string;
     roomName: string;
   };
 }
@@ -23,8 +21,8 @@ export interface CreateRoomRequest {
 export interface JoinRoomRequest {
   type: "join_room";
   payload: {
-    roomCode: string;
-    role?: "player" | "spectator" | "host";
+    roomName: string;
+    role: string;
   };
 }
 
