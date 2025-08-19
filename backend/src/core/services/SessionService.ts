@@ -47,7 +47,7 @@ export class SessionService {
 
   updateSession(updated: SessionProfile) {
     const existing = this.sessions.get(updated.sessionId);
-    if (!existing) return false;
+    if (!existing) throw new Error("No previous session to update");
 
     this.sessions.set(updated.sessionId, updated);
 
@@ -60,7 +60,7 @@ export class SessionService {
       this.indexByProfileId.set(updated.profile.id, updated.sessionId);
     }
 
-    return true;
+    return this.sessions.get(updated.sessionId);
   }
 
   getSessionByConnectionId(connectionId: string): SessionProfile | null {

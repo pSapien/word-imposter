@@ -7,17 +7,38 @@ import { useLocalStorage } from "@uidotdev/usehooks";
 import { Constants } from "@app/constants";
 import { Button, Input, Card, CardContent, CardHeader } from "@app/components";
 import { getGameInfo } from "../../game-registry.ts";
+import { Validators } from "../../../../shared";
 
 export function WordImposterRoom() {
   const navigate = useNavigate();
   const { status, send, login } = useSocket();
 
   const [playerName, setPlayerName] = useLocalStorage(Constants.StorageKeys.Name, "");
-  const [_, setRole] = useLocalStorage(Constants.StorageKeys.Role, "player");
   const [roomName, setRoomName] = useLocalStorage(Constants.StorageKeys.RoomName, "");
+  const [_, setRole] = useLocalStorage(Constants.StorageKeys.Role, "player");
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({
+    playerName: "",
+    roomName: "",
+  });
 
   const gameInfo = getGameInfo("imposter")!;
+
+  function handleChange(field: "playerName" | "roomName", e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+
+    if (field === "playerName") setPlayerName(value);
+    if (field === "roomName") setRoomName(value);
+
+    try {
+      if (field === "playerName") Validators.validatePlayerName(value);
+      if (field === "roomName") Validators.validateRoomName(value);
+
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    } catch (err: any) {
+      setErrors((prev) => ({ ...prev, [field]: err.message }));
+    }
+  }
 
   useSocketHandler({
     login_success: (payload) => {
@@ -38,20 +59,7 @@ export function WordImposterRoom() {
     },
   });
 
-  function validatePlayerName() {
-    if (!playerName.trim()) {
-      toast.error("Please enter your name");
-      return false;
-    }
-    return true;
-  }
-
-  function validateRoomName() {
-    return true;
-  }
-
   function handleCreateOrJoinedRoom(action: "create" | "join", role: string) {
-    if (!validatePlayerName() || !validateRoomName()) return false;
     setIsLoading(true);
 
     login(playerName);
@@ -68,6 +76,8 @@ export function WordImposterRoom() {
       payload: { role, roomName: roomName.trim() },
     });
   }
+
+  const isFormValid = Boolean(errors.playerName.length === 0 && errors.roomName.length === 0);
 
   return (
     <div
@@ -112,8 +122,10 @@ export function WordImposterRoom() {
               label="Your Name"
               placeholder="Enter your display name"
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
+              onChange={(e) => handleChange("playerName", e)}
               disabled={isLoading}
+              error={errors.playerName}
+              required
             />
 
             <Input
@@ -121,8 +133,10 @@ export function WordImposterRoom() {
               label="Room Name"
               placeholder="Enter room name"
               value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
+              onChange={(e) => handleChange("roomName", e)}
               disabled={isLoading}
+              error={errors.roomName}
+              required
             />
 
             <div className="space-y-4">
@@ -131,7 +145,7 @@ export function WordImposterRoom() {
                 variant="primary"
                 className="w-full"
                 size="lg"
-                disabled={isLoading}
+                disabled={isLoading || !isFormValid}
               >
                 🏠 Create New Room
               </Button>
@@ -147,13 +161,19 @@ export function WordImposterRoom() {
 
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => handleCreateOrJoinedRoom("join", "spectator")} disabled={isLoading}>
-                    <Card className="h-20 flex flex-col items-center justify-center space-x-2">
-                      <span>👀</span> <p className="font-bold">Join as Spectator</p>
+                  <button
+                    onClick={() => handleCreateOrJoinedRoom("join", "spectator")}
+                    disabled={isLoading || !isFormValid}
+                  >
+                    <Card className="h-20 flex flex-col items-center justify-center space-y-2">
+                      👀 <p className="font-bold">Join as Spectator</p>
                     </Card>
                   </button>
-                  <button onClick={() => handleCreateOrJoinedRoom("join", "player")} disabled={isLoading}>
-                    <Card className="h-20 flex flex-col items-center justify-center space-x-2">
+                  <button
+                    onClick={() => handleCreateOrJoinedRoom("join", "player")}
+                    disabled={isLoading || !isFormValid}
+                  >
+                    <Card className="h-20 flex flex-col items-center justify-center space-y-2">
                       🚪 <p className="font-bold">Join as Player</p>
                     </Card>
                   </button>

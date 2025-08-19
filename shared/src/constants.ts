@@ -1,0 +1,6 @@
+export const SharedConstants = Object.freeze({
+  PLAYER_NAME_MIN_CHAR_LENGTH: 2,
+  PLAYER_NAME_MAX_CHAR_LENGTH: 20,
+  ROOM_NAME_MIN_CHAR_LENGTH: 3,
+  ROOM_NAME_MAX_CHAR_LENGTH: 30,
+});

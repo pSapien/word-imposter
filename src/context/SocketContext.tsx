@@ -94,9 +94,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
       startPing();
 
       // If previous session exists, try to sync login
-      if (sessionIdRef.current) {
-        send({ type: "sync_login", payload: { sessionId: sessionIdRef.current } });
-      }
+      const displayName = localStorage.getItem(Constants.StorageKeys.Name);
+      if (sessionIdRef.current && displayName) login(JSON.parse(displayName));
 
       handlersRef.current.forEach((h) => h.onOpen?.());
     });
