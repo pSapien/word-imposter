@@ -49,7 +49,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const login = useCallback((playerName: string) => {
     send({
       type: "login",
-      payload: { displayName: playerName.trim() },
+      payload: {
+        displayName: playerName.trim(),
+        sessionId: sessionIdRef.current ?? undefined,
+      },
     });
   }, []);
 
@@ -85,7 +88,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
   };
 
   useEffect(() => {
-    console.log("useEffect is called");
     ws.addEventListener("open", () => {
       console.log("🔌 Global socket connected");
       setStatus("connected");
