@@ -177,7 +177,7 @@ export function WordImposterGameUI() {
             </div>
           </div>
 
-          {isHost && (
+          {isHost ? (
             <button
               onClick={() => {
                 settingsModal.show({
@@ -187,52 +187,62 @@ export function WordImposterGameUI() {
                 });
               }}
             >
-              <Settings color="white" height={24} width={24} />
+              <Settings color="white" height={20} width={20} />
             </button>
+          ) : (
+            <div className="w-20" />
           )}
         </div>
       </header>
+
       {/* Scrollable Content */}
       <main className="flex-1 overflow-y-auto relative z-10 max-w-4xl mx-auto p-4 space-y-8 w-full">
         <WordCard word={gameState?.civilianWord || ""} />
 
         {gameState?.stage === "voting" && (
-          <>
+          <div>
             <div className="bg-white/20 rounded-lg p-3">
-              <div className="text-white text-sm">
+              <div className="text-white text-sm text-center">
                 Votes cast: {voteCount}/{totalActivePlayers}
               </div>
-              <div className="w-full bg-white/20 rounded-full h-2 mt-2">
+              <div className="w-full bg-black/20 rounded-full h-2 mt-2">
                 <div
-                  className="bg-white rounded-full h-2 transition-all duration-300"
+                  className="bg-green-500 rounded-full h-2 transition-all duration-300"
                   style={{ width: `${(voteCount / totalActivePlayers) * 100}%` }}
                 />
               </div>
+              <div className="text-sm text-white/80 py-2 text-center">
+                {(() => {
+                  if (currentUserId in gameState.votes) {
+                    const voteeId = gameState.votes[currentUserId];
+                    const votedMember = room?.members.find((r) => r.id === voteeId);
+
+                    if (votedMember)
+                      return (
+                        <p>
+                          ✅ You have voted: <strong>{votedMember.displayName}</strong>
+                        </p>
+                      );
+                    return `🤷‍♂️ Skipped Voting!`;
+                  }
+
+                  if (role === "spectator") return null;
+
+                  return "⏳ Cast your vote below";
+                })()}
+              </div>
             </div>
-            <div className="text-sm text-white/80 text-center">
-              {(() => {
-                if (currentUserId in gameState.votes) {
-                  const voteeId = gameState.votes[currentUserId];
-                  const votedMember = room?.members.find((r) => r.id === voteeId);
-
-                  if (votedMember) return `✅ You have voted: ${votedMember.displayName}`;
-                  return `🤷‍♂️ Skipped Voting!`;
-                }
-
-                if (role === "spectator") return null;
-
-                return "⏳ Cast your vote below";
-              })()}
-            </div>
-          </>
+          </div>
         )}
 
         {gameState && gameState.stage === "results" && room && (
-          <GameResults players={room.members} gameState={gameState} />
+          <div>
+            <GameResults players={room.members} gameState={gameState} />
+          </div>
         )}
 
-        {room && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {room && gameState?.stage !== "results" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2">
             <PlayerList
               stage={gameState?.stage || ""}
               onKickPlayer={handleKickPlayer}
@@ -262,10 +272,11 @@ export function WordImposterGameUI() {
             />
           </div>
         )}
+
+        <div className="h-24" />
       </main>
 
       {/* empty div so that the main content does not overlap the sticky footer  */}
-      <div className="h-24" />
 
       <FooterSection
         isHost={isHost}
