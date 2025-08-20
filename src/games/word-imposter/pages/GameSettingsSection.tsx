@@ -68,7 +68,7 @@ export function GameSettingsSection({ playersCount, hide }: Props) {
               </div>
             </div>
 
-            <div>
+            {/* <div>
               <label className="block font-semibold text-gray-700 mb-2">Number of Imposters</label>
               <Input
                 type="number"
@@ -88,7 +88,7 @@ export function GameSettingsSection({ playersCount, hide }: Props) {
                 className="w-full"
               />
               <div className="text-xs text-gray-500 mt-1">Recommended: 1 imposter per 3-4 players</div>
-            </div>
+            </div> */}
 
             <Button onClick={hide} className="w-full mt-2">
               Save & Close
