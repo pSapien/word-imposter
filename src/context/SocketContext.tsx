@@ -132,8 +132,17 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     });
 
+    /** called whenever the browser tab's is switched */
+    function handleVisibilityChange() {
+      /** if the tab is visible and the socket is closing or closed, we reconnect again! */
+      if (!document.hidden && (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED)) {
+        console.log("Socket Reconnect");
+        ws.reconnect();
+      }
+    }
+
     () => {
-      console.log("usEffect unmount");
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopPing();
       ws.close();
     };
