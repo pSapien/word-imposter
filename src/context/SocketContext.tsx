@@ -34,6 +34,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     currentUserId: "",
   });
   const sessionIdRef = useRef<string>(sessionId);
+  sessionIdRef.current = sessionId;
 
   const [status, setStatus] = useState<SocketStatus>("connecting");
   const [ws] = useState(new ReconnectingWebSocket(Constants.Endpoint));
