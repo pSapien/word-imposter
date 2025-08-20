@@ -1,5 +1,5 @@
 import { WORD_CATEGORIES } from "../config.ts";
-import { Input, Card, CardHeader, CardContent, Button } from "@app/components";
+import { Card, CardHeader, CardContent, Button } from "@app/components";
 import { Constants } from "@app/constants";
 import { cn } from "@app/utils";
 import { useLocalStorage } from "@uidotdev/usehooks";
@@ -10,7 +10,6 @@ export type GameSettingState = {
 };
 
 interface Props {
-  playersCount: number;
   hide: () => void;
 }
 
@@ -21,7 +20,7 @@ export function usePersistGameSettings() {
   });
 }
 
-export function GameSettingsSection({ playersCount, hide }: Props) {
+export function GameSettingsSection({ hide }: Props) {
   const [state, onChange] = usePersistGameSettings();
 
   function handleCategoryChange(selectedCategory: string) {
