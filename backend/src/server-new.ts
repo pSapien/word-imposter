@@ -30,7 +30,7 @@ const cleanupInterval = setInterval(() => {
 }, 60000);
 
 const server = Bun.serve({
-  port: 3000,
+  port: 3001,
   fetch(req, server) {
     const success = server.upgrade(req);
     if (success) return undefined;
