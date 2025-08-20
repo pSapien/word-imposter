@@ -1,4 +1,4 @@
-import type { LoginRequest, LoginResponse, SyncLoginRequest } from "./auth.js";
+import type { LoginRequest, LoginResponse } from "./auth.js";
 import type {
   CreateRoomRequest,
   JoinRoomRequest,
@@ -13,7 +13,6 @@ import type { ErrorResponse } from "./error.js";
 
 export type ClientRequestEvents =
   | LoginRequest
-  | SyncLoginRequest
   | CreateRoomRequest
   | JoinRoomRequest
   | KickRoomMemberRequest
