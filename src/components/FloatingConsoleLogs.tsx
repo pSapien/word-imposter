@@ -31,7 +31,7 @@ export function FloatingConsoleLogs() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 w-12 h-12 rounded-full bg-black bg-opacity-80 text-white shadow-lg hover:bg-opacity-90 transition"
+        className="fixed bottom-4 z-1000 right-4 w-12 h-12 rounded-full bg-black bg-opacity-80 text-white shadow-lg hover:bg-opacity-90 transition"
         title="View Logs"
       >
         📝
