@@ -7,7 +7,7 @@ import { Constants } from "@app/constants";
 
 import { WordCard } from "../components/index.ts";
 import { FooterSection } from "./FooterSection.tsx";
-import { GameSettingsSection, type GameSettingState } from "./GameSettingsSection.tsx";
+import { GameSettingsSection, usePersistGameSettings } from "./GameSettingsSection.tsx";
 import { Button, PlayerList, useModal } from "@app/components";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { cn } from "@app/utils";
@@ -25,13 +25,7 @@ export function WordImposterGameUI() {
   const isConnected = status === "connected" || status === "authenticated";
 
   const [room, setRoom] = useState<Room | null>(null);
-  const [hostGameSettings, setHostGameSettings] = useLocalStorage<GameSettingState>(
-    Constants.StorageKeys.GameSettings,
-    {
-      wordCategories: ["legacy"],
-      imposterCount: 1,
-    }
-  );
+  const [hostGameSettings] = usePersistGameSettings();
 
   const [gameState, setGameState] = useState<WordImposterState | null>(null);
 
@@ -181,9 +175,7 @@ export function WordImposterGameUI() {
             <button
               onClick={() => {
                 settingsModal.show({
-                  onChange: setHostGameSettings,
                   playersCount: room?.members?.length || 1,
-                  state: hostGameSettings,
                 });
               }}
             >
