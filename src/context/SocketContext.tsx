@@ -141,7 +141,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     }
 
-    () => {
+    return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopPing();
       ws.close();

@@ -40,7 +40,7 @@ const server = Bun.serve({
   websocket: {
     open(ws) {
       const connectionId = wsManager.addConnection(ws);
-      console.log(`Connection opened: ${connectionId}`);
+      console.log(`Connection opened: ${connectionId}:${ws.remoteAddress}`);
     },
 
     ping(ws, data) {
