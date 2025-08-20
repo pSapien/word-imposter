@@ -1,6 +1,8 @@
 import { WORD_CATEGORIES } from "../config.ts";
 import { Input, Card, CardHeader, CardContent, Button } from "@app/components";
+import { Constants } from "@app/constants";
 import { cn } from "@app/utils";
+import { useLocalStorage } from "@uidotdev/usehooks";
 
 export type GameSettingState = {
   wordCategories: string[];
@@ -8,13 +10,20 @@ export type GameSettingState = {
 };
 
 interface Props {
-  state: GameSettingState;
-  onChange: React.Dispatch<React.SetStateAction<GameSettingState>>;
   playersCount: number;
   hide: () => void;
 }
 
-export function GameSettingsSection({ playersCount, state, onChange, hide }: Props) {
+export function usePersistGameSettings() {
+  return useLocalStorage<GameSettingState>(Constants.StorageKeys.GameSettings, {
+    wordCategories: ["legacy"],
+    imposterCount: 1,
+  });
+}
+
+export function GameSettingsSection({ playersCount, hide }: Props) {
+  const [state, onChange] = usePersistGameSettings();
+
   function handleCategoryChange(selectedCategory: string) {
     const categoriesSet = new Set<string>(state.wordCategories);
     if (categoriesSet.has(selectedCategory)) {
@@ -26,9 +35,9 @@ export function GameSettingsSection({ playersCount, state, onChange, hide }: Pro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 backdrop-blur-sm">
-      <div className="max-w-md w-full p-4">
-        <Card variant="glass">
+    <div className="fixed inset-0 z-50 flex overflow-y-auto  items-center justify-center bg-black/10 backdrop-blur-sm">
+      <div className="max-w-md w-full">
+        <Card variant="glass" className="max-h-[85vh] overflow-y-auto">
           <CardHeader className="flex justify-between items-center">
             <h3 className="text-xl font-bold text-gray-800 flex items-center">🎭 Game Settings</h3>
             <Button variant="ghost" size="sm" className="text-gray-600 hover:bg-gray-200/30" onClick={hide}>
@@ -63,6 +72,7 @@ export function GameSettingsSection({ playersCount, state, onChange, hide }: Pro
               <label className="block font-semibold text-gray-700 mb-2">Number of Imposters</label>
               <Input
                 type="number"
+                name="imposterCount"
                 min={1}
                 max={Math.max(1, Math.floor(playersCount / 3))}
                 value={state.imposterCount}
