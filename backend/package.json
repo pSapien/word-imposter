@@ -6,16 +6,20 @@
   "private": true,
   "scripts": {
     "start": "bun run src/server.ts",
-    "start:new": "bun run src/server-new.ts",
-    "dev": "bun run --watch src/server-new.ts",
+    "start:new": "bun run src/server.ts",
+    "dev": "bun run --watch src/server.ts",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "build": "bun build src/server-new.ts --outdir dist --target bun",
+    "build": "bun build src/server.ts --outdir dist --target bun",
     "lint": "eslint src/**/*.ts",
-    "type-check": "tsc --noEmit"
+    "type:check": "bun tsc --noEmit"
+  },
+  "engines": {
+    "bun": ">=1.2.20"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": ">=1.2.20",
+    "@types/jsonwebtoken": "9.0.2",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.0"
@@ -25,7 +29,6 @@
   },
   "dependencies": {
     "@imposter/shared": "link:../shared",
-    "lucide-react": "^0.539.0",
-    "uuidv4": "^6.2.13"
+    "jsonwebtoken": "^9.0.2"
   }
 }

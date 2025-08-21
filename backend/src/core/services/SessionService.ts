@@ -1,5 +1,3 @@
-import { v4 as uuid } from "uuid";
-
 export interface GuestProfile {
   id: string;
   displayName: string;
@@ -13,6 +11,12 @@ export interface SessionProfile {
   profile: GuestProfile;
 }
 
+function randomStr(length = 12) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Buffer.from(bytes).toString("base64url");
+}
+
 export class SessionService {
   private sessions = new Map<string, SessionProfile>();
   private indexByConnectionId = new Map<string, string>();
@@ -22,14 +26,14 @@ export class SessionService {
     if (!displayName?.trim()) throw new Error("Display name is required");
 
     const profile: GuestProfile = {
-      id: uuid(),
+      id: randomStr(8),
       displayName: displayName.trim(),
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
     };
 
     const session: SessionProfile = {
-      sessionId: uuid(),
+      sessionId: randomStr(8),
       connectionId,
       profile,
     };
@@ -45,22 +49,30 @@ export class SessionService {
     return this.sessions.get(sessionId) || null;
   }
 
-  updateSession(updated: SessionProfile) {
-    const existing = this.sessions.get(updated.sessionId);
-    if (!existing) throw new Error("No previous session to update");
+  updateLastActive(connectionId: string) {
+    const session = this.getSessionByConnectionId(connectionId);
+    if (session) session.profile.lastActiveAt = Date.now();
+  }
 
-    this.sessions.set(updated.sessionId, updated);
+  resignConnection(sessionId: string, newConnectionId: string): SessionProfile | null {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
 
-    if (existing.connectionId !== updated.connectionId) {
-      this.indexByConnectionId.delete(existing.connectionId);
-      this.indexByConnectionId.set(updated.connectionId, updated.sessionId);
-    }
-    if (existing.profile.id !== updated.profile.id) {
-      this.indexByProfileId.delete(existing.profile.id);
-      this.indexByProfileId.set(updated.profile.id, updated.sessionId);
-    }
+    /** remove the old connection id from index */
+    this.indexByConnectionId.delete(session.connectionId);
 
-    return this.sessions.get(updated.sessionId);
+    /** assign the new connection */
+    session.connectionId = newConnectionId;
+    this.indexByConnectionId.set(newConnectionId, session.sessionId);
+    return session;
+  }
+
+  updateProfile(sessionId: string, displayName: string) {
+    const session = this.getSessionByProfileId(sessionId);
+    if (!session) return null;
+
+    session.profile.displayName = displayName;
+    return session;
   }
 
   getSessionByConnectionId(connectionId: string): SessionProfile | null {
@@ -81,6 +93,21 @@ export class SessionService {
     this.indexByConnectionId.delete(session.connectionId);
     this.indexByProfileId.delete(session.profile.id);
     return true;
+  }
+
+  cleanupInactiveSessions(maxInActiveMs: number): void {
+    const now = Date.now();
+
+    this.sessions.forEach((session) => {
+      if (now - session.profile.lastActiveAt > maxInActiveMs) {
+        console.log(`Cleaning up inactive session for ${session.profile.displayName}`);
+        this.removeSession(session.sessionId);
+      }
+    });
+  }
+
+  getStats() {
+    return this.sessions.size;
   }
 
   shutdown() {

@@ -7,4 +7,3 @@ export * from "./ui/Card";
 export * from "./ui/Input";
 
 export * from "./game/GameSelector";
-export * from "./game/PlayerList";

@@ -1,8 +1,8 @@
 import { WORD_CATEGORIES } from "../config.ts";
 import { Card, CardHeader, CardContent, Button } from "@app/components";
-import { Constants } from "@app/constants";
+import { useLocalStorage } from "@app/hooks";
 import { cn } from "@app/utils";
-import { useLocalStorage } from "@uidotdev/usehooks";
+import { ImposterGameSettingsStorage } from "../../../context/profile.ts";
 
 export type GameSettingState = {
   wordCategories: string[];
@@ -13,15 +13,8 @@ interface Props {
   hide: () => void;
 }
 
-export function usePersistGameSettings() {
-  return useLocalStorage<GameSettingState>(Constants.StorageKeys.GameSettings, {
-    wordCategories: ["legacy"],
-    imposterCount: 1,
-  });
-}
-
 export function GameSettingsSection({ hide }: Props) {
-  const [state, onChange] = usePersistGameSettings();
+  const [state, onChange] = useLocalStorage(ImposterGameSettingsStorage);
 
   function handleCategoryChange(selectedCategory: string) {
     const categoriesSet = new Set<string>(state.wordCategories);
@@ -30,7 +23,11 @@ export function GameSettingsSection({ hide }: Props) {
     } else {
       categoriesSet.add(selectedCategory);
     }
-    onChange((prev) => ({ ...prev, wordCategories: Array.from(categoriesSet) }));
+
+    onChange({
+      ...state,
+      wordCategories: Array.from(categoriesSet),
+    });
   }
 
   return (

@@ -1,31 +1,30 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import type { Room, WordImposterState } from "../../../../shared";
-import { useLocalStorage } from "@uidotdev/usehooks";
-import { Constants } from "@app/constants";
-
-import { WordCard } from "../components/index.ts";
-import { FooterSection } from "./FooterSection.tsx";
-import { GameSettingsSection, usePersistGameSettings } from "./GameSettingsSection.tsx";
-import { Button, PlayerList, useModal } from "@app/components";
+import { ErrorCodes, type Room, type WordImposterState, type WordImposterStatePlayer } from "../../../../shared";
 import { useSocket, useSocketHandler } from "@app/socket";
-import { cn } from "@app/utils";
-import { GameResults } from "./GameResults";
-import { Settings } from "lucide-react";
+
+import {
+  WordCard,
+  FooterSection,
+  GameSummary,
+  PlayerList,
+  SpectatorList,
+  BackgroundEffects,
+  GameHeader,
+  VotingProgress,
+} from "../components";
+import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
+import { useLocalStorage } from "@app/hooks";
 
 export function WordImposterGameUI() {
-  const settingsModal = useModal(GameSettingsSection);
-
   const params = useParams<{ roomName: string }>();
   const roomName = params.roomName as string;
   const navigate = useNavigate();
   const { status, send, currentUserId } = useSocket();
-  const [role] = useLocalStorage<"player" | "host" | "spectator">(Constants.StorageKeys.Role, "player");
-  const isConnected = status === "connected" || status === "authenticated";
+  const [role] = useLocalStorage(RoleStorage);
 
   const [room, setRoom] = useState<Room | null>(null);
-  const [hostGameSettings] = usePersistGameSettings();
 
   const [gameState, setGameState] = useState<WordImposterState | null>(null);
 
@@ -46,7 +45,7 @@ export function WordImposterGameUI() {
 
     error: (error) => {
       toast.error(error.message);
-      if (error.code === "room.not_found") navigate("/");
+      if (error.code === ErrorCodes.authSessionExpiry) navigate("/");
     },
 
     onError: (error) => {
@@ -65,11 +64,12 @@ export function WordImposterGameUI() {
   }, [status, send, role]);
 
   const handleStartGame = () => {
+    const gameSettings = ImposterGameSettingsStorage.get();
     send({
       type: "start_game",
       payload: {
         gameType: "imposter",
-        settings: hostGameSettings,
+        settings: gameSettings,
       },
     });
   };
@@ -117,7 +117,7 @@ export function WordImposterGameUI() {
     });
   }
 
-  function onVotePlayer(playerId: string) {
+  function handleVotePlayer(playerId: string) {
     if (!isVotingPhase) return toast.error("Not voting stage");
 
     send({
@@ -141,163 +141,117 @@ export function WordImposterGameUI() {
     });
   }
 
-  const voteCount = gameState?.votes ? Object.keys(gameState.votes).length : 0;
-  const totalActivePlayers =
-    room?.members.filter((r) => !gameState?.eliminatedPlayerIds.includes(r.id) && r.role !== "spectator").length || 0;
+  const voteCount = Number(gameState?.players.filter((player) => player.hasVoted).length);
+  const totalActivePlayers = gameState ? getTotalActivePlayers(gameState) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse" />
-        <div className="absolute bottom-20 right-20 w-40 h-40 bg-white/10 rounded-full blur-xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-10 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse delay-500" />
-      </div>
+      <BackgroundEffects />
+      <GameHeader isCurrentUserHost={isHost} onBack={handleLeaveRoom} roomName={room?.roomName || ""} />
 
-      <header className="relative z-10 bg-white/10 backdrop-blur-md border-b border-white/20">
-        <div className="max-w-4xl px-4 py-4 flex items-center justify-between">
-          <Button onClick={handleLeaveRoom} variant="ghost" size="sm" className="text-white hover:bg-white/20">
-            ←
-          </Button>
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-white">🎭 Word Imposter</h1>
-            <div className="text-sm text-white/80">Room: {roomName}</div>
-            <div
-              className={cn(
-                "text-sm px-3 py-1 rounded-full inline-block mt-1",
-                isConnected ? "bg-green-500/20 text-green-100" : "bg-red-500/20 text-red-100"
-              )}
-            >
-              {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
-            </div>
-          </div>
-
-          {isHost ? (
-            <button
-              onClick={() => {
-                settingsModal.show({
-                  playersCount: room?.members?.length || 1,
-                });
-              }}
-            >
-              <Settings color="white" height={20} width={20} />
-            </button>
-          ) : (
-            <div className="w-20" />
-          )}
-        </div>
-      </header>
-
-      {/* Scrollable Content */}
       <main className="flex-1 overflow-y-auto relative z-10 max-w-4xl mx-auto p-4 space-y-8 w-full">
         <WordCard word={gameState?.civilianWord || ""} />
 
         {gameState?.stage === "voting" && (
-          <div>
-            <div className="bg-white/20 rounded-lg p-3">
-              <div className="text-white text-sm text-center">
-                Votes cast: {voteCount}/{totalActivePlayers}
-              </div>
-              <div className="w-full bg-black/20 rounded-full h-2 mt-2">
-                <div
-                  className="bg-green-500 rounded-full h-2 transition-all duration-300"
-                  style={{ width: `${(voteCount / totalActivePlayers) * 100}%` }}
-                />
-              </div>
-              <div className="text-sm text-white/80 py-2 text-center">
-                {(() => {
-                  if (currentUserId in gameState.votes) {
-                    const voteeId = gameState.votes[currentUserId];
-                    const votedMember = room?.members.find((r) => r.id === voteeId);
-
-                    if (votedMember)
-                      return (
-                        <p>
-                          ✅ You have voted: <strong>{votedMember.displayName}</strong>
-                        </p>
-                      );
-                    return `🤷‍♂️ Skipped Voting!`;
-                  }
-
-                  if (role === "spectator") return null;
-
-                  return "⏳ Cast your vote below";
-                })()}
-              </div>
-            </div>
-          </div>
+          <VotingProgress
+            shouldVote={totalActivePlayers.some((p) => p.id === currentUserId)}
+            totalActivePlayers={totalActivePlayers.length}
+            voteCount={voteCount}
+            votedFor={getVotedFor(gameState, currentUserId)}
+          />
         )}
 
-        {gameState && gameState.stage === "results" && room && (
-          <div>
-            <GameResults players={room.members} gameState={gameState} />
-          </div>
-        )}
-
-        {room && gameState?.stage !== "results" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2">
+        {!gameState && room && (
+          <>
             <PlayerList
-              stage={gameState?.stage || ""}
-              onKickPlayer={handleKickPlayer}
-              onVotePlayer={onVotePlayer}
-              isHost={isHost}
-              role={role}
-              isEliminated={Boolean(gameState?.imposterIds.includes(currentUserId))}
-              players={sortPlayers(players, room.hostId, gameState?.eliminatedPlayerIds || []).map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-                isEliminated: Boolean(gameState?.eliminatedPlayerIds.includes(p.id)),
-                isHost: p.id === room.hostId,
+              players={players.map((p) => ({
+                ...p,
                 isCurrentUser: p.id === currentUserId,
-                hasVoted: Boolean(p.id in (gameState?.votes || {})),
-                imposterWord: gameState?.imposterIds.includes(p.id) ? gameState?.imposterWord : "",
-              }))}
-              spectators={spectators.map((p) => ({
-                id: p.id,
-                displayName: p.displayName,
-                isEliminated: false,
-                isHost: false,
-                isCurrentUser: p.id === currentUserId,
+                isHost: p.id === room?.hostId,
                 hasVoted: false,
                 imposterWord: "",
+                isEliminated: false,
               }))}
+              stage=""
               currentUserId={currentUserId}
+              currentUserIsHost={isHost}
+              onKickPlayer={handleKickPlayer}
+              onVotePlayer={() => {}}
             />
-          </div>
+
+            <SpectatorList currentUserId={currentUserId} spectators={spectators} />
+          </>
         )}
 
+        {gameState && (gameState.stage === "discussion" || gameState.stage === "voting") && (
+          <>
+            <PlayerList
+              players={sortPlayers(gameState.players).map((p) => ({
+                id: p.id,
+                displayName: p.displayName,
+                isCurrentUser: p.id === currentUserId,
+                isHost: p.id === room?.hostId,
+                hasVoted: p.hasVoted,
+                imposterWord: gameState.imposterWord,
+                isEliminated: p.status === "eliminated",
+              }))}
+              stage={gameState.stage}
+              currentUserId={currentUserId}
+              currentUserIsHost={isHost}
+              onKickPlayer={handleKickPlayer}
+              onVotePlayer={handleVotePlayer}
+            />
+            <SpectatorList currentUserId={currentUserId} spectators={spectators} />
+          </>
+        )}
+
+        {gameState && gameState.stage === "results" && <GameSummary gameState={gameState} />}
+
+        {/* empty div so that the main content does not overlap the sticky footer  */}
         <div className="h-24" />
       </main>
 
-      {/* empty div so that the main content does not overlap the sticky footer  */}
-
-      <FooterSection
-        isHost={isHost}
-        stage={gameState?.stage ?? ""}
-        noWinner={Boolean(gameState?.roundResults && gameState?.roundResults.winner === null)}
-        onStartGame={handleStartGame}
-        onStartVoting={handleStartVoting}
-        onEndVoting={handleEndVoting}
-        onNextRound={handleNextRound}
-      />
+      {isHost && (
+        <FooterSection
+          stage={gameState?.stage ?? ""}
+          noWinner={Boolean(gameState?.summary?.winner === null)}
+          onStartGame={handleStartGame}
+          onStartVoting={handleStartVoting}
+          onEndVoting={handleEndVoting}
+          onNextRound={handleNextRound}
+        />
+      )}
     </div>
   );
 }
 
-function sortPlayers(players: Room["members"], hostId: string, eliminated: string[]): Room["members"] {
-  const eliminatedSet = new Set(eliminated);
+function getVotedFor(state: WordImposterState, playerId: string) {
+  if (!(playerId in state.votes)) return null;
 
+  const votedForPlayerId = state.votes[playerId];
+  if (votedForPlayerId === "") return "Skipped";
+
+  const votedForPlayer = state.players.find((p) => p.id === votedForPlayerId);
+  if (!votedForPlayer) return null;
+
+  return votedForPlayer.displayName;
+}
+
+function getTotalActivePlayers(state: WordImposterState) {
+  return state.players.filter((p) => p.role !== "spectator" && p.status === "alive");
+}
+
+export function sortPlayers(players: WordImposterStatePlayer[]): WordImposterStatePlayer[] {
   return players.slice().sort((a, b) => {
     // 1. Host comes first
-    if (a.id === hostId) return -1;
-    if (b.id === hostId) return 1;
+    if (a.role === "host") return -1;
+    if (b.role === "host") return 1;
 
-    // 2. Non-eliminated players before eliminated
-    const aEliminated = eliminatedSet.has(a.id);
-    const bEliminated = eliminatedSet.has(b.id);
-    if (aEliminated && !bEliminated) return 1;
-    if (!aEliminated && bEliminated) return -1;
+    // 2. Alive players before eliminated
+    if (a.status === "eliminated" && b.status !== "eliminated") return 1;
+    if (a.status !== "eliminated" && b.status === "eliminated") return -1;
 
-    // 3. Otherwise alphabetical
-    return a.id.localeCompare(b.id);
+    // 3. Alphabetical by displayName
+    return a.displayName.localeCompare(b.displayName);
   });
 }

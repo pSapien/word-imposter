@@ -1,4 +1,4 @@
-import { ServerResponseEvents } from "@imposter/shared";
+import { ErrorCodes, type ServerResponseEvents } from "@imposter/shared";
 import { WebSocketManager } from "../WebSocketManager.js";
 import { SessionService } from "../services/SessionService.js";
 
@@ -23,7 +23,7 @@ export class AuthMiddleware {
         this.wsManager.send(connectionId, {
           type: "error",
           payload: {
-            code: "auth.required",
+            code: ErrorCodes.authUnauthorized,
             message: "Authentication required",
           },
         });

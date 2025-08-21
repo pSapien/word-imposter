@@ -1,11 +1,14 @@
-import { RoomService, SessionService, WebSocketManager, AuthMiddleware } from "./core";
-import { ServerResponseEvents } from "@imposter/shared";
+import { RoomService, SessionService, WebSocketManager, AuthMiddleware, AuthService } from "./core/index.js";
+import { ErrorCodes, type ServerResponseEvents } from "@imposter/shared";
 
 import { AuthHandlers } from "./api/handlers/AuthHandlers.js";
 import { RoomHandlers } from "./api/handlers/RoomHandlers.js";
 import { MessageRouter } from "./api/routes/MessageRouter.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key";
+
 const services = {
+  auth: new AuthService(JWT_SECRET, "1h"),
   session: new SessionService(),
   room: new RoomService(),
 };
@@ -23,10 +26,16 @@ const routeHandlers = {
 
 const messageRouter = new MessageRouter(middlewares, routeHandlers);
 
+const ONE_MINUTE = 60 * 1000;
+
+const CLEANUP_INACTIVE_SESSIONS = 30 * ONE_MINUTE;
+const CLEANUP_STALE_ROOMS = 20 * ONE_MINUTE;
+const CLEANUP_STALE_CONNECTIONS = 2 * ONE_MINUTE;
+
 const cleanupInterval = setInterval(() => {
-  // services.session.cleanupInactiveSessions();
-  services.room.cleanupEmptyRooms();
-  wsManager.cleanupStaleConnections();
+  services.session.cleanupInactiveSessions(CLEANUP_INACTIVE_SESSIONS);
+  services.room.cleanupStaleRooms(CLEANUP_STALE_ROOMS);
+  wsManager.cleanupStaleConnections(CLEANUP_STALE_CONNECTIONS);
 }, 60000);
 
 const server = Bun.serve({
@@ -34,6 +43,41 @@ const server = Bun.serve({
   fetch(req, server) {
     const success = server.upgrade(req);
     if (success) return undefined;
+
+    const url = new URL(req.url);
+    if (url.pathname === "/i") {
+      return new Response(
+        JSON.stringify({
+          status: "healthy",
+          timestamp: new Date().toISOString(),
+          uptime: Math.floor(process.uptime()),
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    if (url.pathname === "/stats") {
+      return new Response(
+        JSON.stringify({
+          activeConnections: wsManager.getStats(),
+          room: services.room.getStats(),
+          sessions: services.session.getStats(),
+          uptime: Math.floor(process.uptime()),
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
     return new Response("Word Imposter Game Server");
   },
 
@@ -56,6 +100,7 @@ const server = Bun.serve({
       }
 
       wsManager.updatePing(connectionId);
+      services.session.updateLastActive(connectionId);
 
       let message;
       try {
@@ -64,26 +109,26 @@ const server = Bun.serve({
         wsManager.send(connectionId, {
           type: "error",
           payload: {
-            code: "message.invalid_format",
+            code: ErrorCodes.serverInvalidMessage,
             message: "Invalid message format",
           },
         });
         return;
       }
 
-      console.log("RX:", JSON.stringify(message, null, 2));
       messageRouter.route(connectionId, message);
     },
 
     close(ws) {
       const connectionId = wsManager.getConnectionId(ws);
       if (connectionId) {
-        // Handle player leaving room
         const connection = wsManager.getConnection(connectionId);
+        const session = services.session.getSessionByConnectionId(connectionId);
 
-        // roomHandlers.handleLeaveRoom(connectionId);
-        wsManager.removeConnection(connectionId);
-        console.log(`Connection closed: ${connectionId}`);
+        if (connection) {
+          wsManager.removeConnection(connectionId);
+          console.log(`Connection closed: ${connectionId}:${session?.profile?.displayName}`);
+        }
       }
     },
   },

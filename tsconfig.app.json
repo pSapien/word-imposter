@@ -28,6 +28,7 @@
       "@app/pages": ["./src/pages"],
       "@app/games": ["./src/games"],
       "@app/constants": ["./src/constants"], 
+      "@app/hooks": ["./src/hooks"], 
       "@imposter/shared": ["./shared"],
     }
   },

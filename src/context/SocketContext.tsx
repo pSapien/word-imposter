@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
-import { useLocalStorage } from "@uidotdev/usehooks";
 import type { ClientRequestEvents, ServerResponseEvents } from "../../shared";
 import { Constants } from "../constants.ts";
+import { useLocalStorage } from "@app/hooks";
+import { NameStorage, ProfileStorage, TokenStorage } from "./profile.ts";
 
 type SocketEventHandlers = {
   [K in ServerResponseEvents["type"]]?: (payload: Extract<ServerResponseEvents, { type: K }>["payload"]) => void;
@@ -29,21 +30,20 @@ interface SocketProviderProps {
 }
 
 export function SocketProvider({ children }: SocketProviderProps) {
-  const [{ sessionId, currentUserId }, setSessionProfile] = useLocalStorage(Constants.StorageKeys.SessionProfile, {
-    sessionId: "",
-    currentUserId: "",
-  });
-  const sessionIdRef = useRef<string>(sessionId);
-  sessionIdRef.current = sessionId;
+  const [profile, setProfile] = useLocalStorage(ProfileStorage);
 
   const [status, setStatus] = useState<SocketStatus>("connecting");
-  const [ws] = useState(new ReconnectingWebSocket(Constants.Endpoint));
+  const [ws] = useState(
+    new ReconnectingWebSocket(Constants.Endpoint, "", {
+      maxRetries: Constants.Connection.MaxRetries,
+      // debug: true,
+    })
+  );
 
   const handlersRef = useRef<Set<SocketEventHandlers>>(new Set());
   const pingIntervalRef = useRef<number | null>(null);
 
   const send = useCallback((message: ClientRequestEvents) => {
-    if (message.type !== "ping") console.log("📤 SX:", message.type);
     ws.send(JSON.stringify(message));
   }, []);
 
@@ -52,7 +52,19 @@ export function SocketProvider({ children }: SocketProviderProps) {
       type: "login",
       payload: {
         displayName: playerName.trim(),
-        sessionId: sessionIdRef.current ?? undefined,
+      },
+    });
+  }, []);
+
+  const tryReconnectionIfPossible = useCallback(() => {
+    const displayName = NameStorage.get();
+    const token = TokenStorage.get();
+    if (!displayName || !token) return;
+    send({
+      type: "login",
+      payload: {
+        token,
+        displayName: displayName.trim(),
       },
     });
   }, []);
@@ -61,7 +73,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     stopPing();
     pingIntervalRef.current = window.setInterval(() => {
       send({ type: "ping", payload: {} });
-    }, Constants.PingInterval);
+    }, Constants.Connection.PingInterval);
   };
 
   const stopPing = () => {
@@ -75,9 +87,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const handleGlobalMessage = (message: ServerResponseEvents) => {
     switch (message.type) {
       case "login_success":
-        setSessionProfile({
-          sessionId: message.payload.sessionId,
-          currentUserId: message.payload.profile.id,
+        TokenStorage.set(message.payload.token);
+        setProfile({
+          displayName: message.payload.profile.displayName,
+          id: message.payload.profile.id,
         });
         setStatus("authenticated");
         break;
@@ -90,19 +103,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
   useEffect(() => {
     ws.addEventListener("open", () => {
-      console.log("🔌 Global socket connected");
       setStatus("connected");
       startPing();
-
-      // If previous session exists, try to sync login
-      const displayName = localStorage.getItem(Constants.StorageKeys.Name);
-      if (sessionIdRef.current && displayName) login(JSON.parse(displayName));
+      tryReconnectionIfPossible();
 
       handlersRef.current.forEach((h) => h.onOpen?.());
     });
 
     ws.addEventListener("close", () => {
-      console.log("🔌 Global socket disconnected");
       setStatus("closed");
       stopPing();
       handlersRef.current.forEach((h) => h.onClose?.());
@@ -119,7 +127,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
     ws.addEventListener("message", (event: any) => {
       try {
         const message = JSON.parse(event.data) as ServerResponseEvents;
-        if (message.type !== "pong") console.log("📨 RX:", message.type);
 
         handleGlobalMessage(message);
 
@@ -136,9 +143,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
     /** called whenever the browser tab's is switched */
     function handleVisibilityChange() {
       /** if the tab is visible and the socket is closing or closed, we reconnect again! */
-      if (!document.hidden && (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED)) {
-        console.log("Socket Reconnect");
-        ws.reconnect();
+      if (document.hidden) {
+        stopPing();
+      } else {
+        if (ws.readyState === WebSocket.OPEN) {
+          startPing();
+        } else if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) {
+          ws.reconnect();
+        }
       }
     }
 
@@ -158,7 +170,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
   const contextValue: SocketContextType = {
     status,
-    currentUserId,
+    currentUserId: profile.id,
     send,
     addHandler,
     login,

@@ -6,7 +6,7 @@ export interface Profile {
 export interface LoginRequest {
   type: "login";
   payload: {
-    sessionId?: string;
+    token?: string;
     displayName: string;
   };
 }
@@ -14,7 +14,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   type: "login_success";
   payload: {
-    sessionId: string;
+    token: string;
     profile: {
       id: string;
       displayName: string;
