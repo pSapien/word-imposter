@@ -2,6 +2,7 @@ import type { Profile } from "./auth.js";
 
 export interface RoomMember extends Profile {
   role: string;
+  status: "connected" | "disconnected";
 }
 
 export interface Room {

@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Card } from "@app/components";
+import { LocalStorage, useLocalStorage } from "@app/hooks";
 import { cn } from "@app/utils";
 
 interface WordCardProps {
@@ -8,7 +8,7 @@ interface WordCardProps {
 }
 
 export function WordCard({ word, className }: WordCardProps) {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useLocalStorage(new LocalStorage("$$visible_imposter_word$$", true));
 
   if (!word) {
     return (

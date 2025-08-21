@@ -7,9 +7,9 @@ export interface GameRoom {
   roomCode: string;
   name: string;
   hostId: string;
+  lastActiveAt: number;
   members: RoomMember[];
   currentGame?: GameEngine<any>;
-  gameHistory: string[];
   createdAt: number;
   settings: {
     maxMembers: number;
@@ -22,6 +22,7 @@ export class RoomService {
   private rooms = new Map<string, GameRoom>();
   private roomCodes = new Map<string, string>();
   private memberToRoom = new Map<string, string>();
+  private disconnectionTimers = new Map<string, NodeJS.Timeout>();
 
   create(host: GuestProfile, roomName: string): GameRoom {
     const roomCode = this.generateRoomCode();
@@ -30,14 +31,15 @@ export class RoomService {
       name: roomName.trim(),
       roomCode,
       hostId: host.id,
+      lastActiveAt: Date.now(),
       members: [
         {
           id: host.id,
           displayName: host.displayName,
           role: "host",
+          status: "connected",
         },
       ],
-      gameHistory: [],
       createdAt: Date.now(),
       settings: {
         maxMembers: 20,
@@ -55,6 +57,18 @@ export class RoomService {
     return newRoom;
   }
 
+  setGame(room: GameRoom, game: GameEngine<any>) {
+    room.currentGame = game;
+    this.updateLastActive(room.roomId);
+  }
+
+  updateLastActive(roomId: string) {
+    const room = this.rooms.get(roomId);
+    if (!room) return null;
+    room.lastActiveAt = Date.now();
+    return room;
+  }
+
   join(roomId: string, profile: GuestProfile, role: string) {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
@@ -66,10 +80,12 @@ export class RoomService {
       id: profile.id,
       displayName: profile.displayName,
       role,
+      status: "connected",
     };
 
     room.members.push(member);
     this.memberToRoom.set(profile.id, room.roomId);
+    this.updateLastActive(room.roomId);
 
     return room;
   }
@@ -92,6 +108,12 @@ export class RoomService {
       this.roomCodes.delete(room.roomCode);
     }
 
+    const timer = this.disconnectionTimers.get(profileId);
+    if (timer) {
+      clearTimeout(timer);
+      this.disconnectionTimers.delete(profileId);
+    }
+
     return room;
   }
 
@@ -105,30 +127,19 @@ export class RoomService {
     return roomId ? this.rooms.get(roomId) || null : null;
   }
 
+  getStats() {
+    return this.rooms.size;
+  }
+
   kickMember(hostId: string, roomId: string, targetProfileId: string): GameRoom {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
     if (room.hostId !== hostId) throw new Error("Only host can kick members");
-
     if (targetProfileId === hostId) throw new Error("Host cannot kick themselves");
 
-    const memberIndex = room.members.findIndex((m) => m.id === targetProfileId);
-    if (memberIndex === -1) throw new Error("Member not found");
-
-    room.members.splice(memberIndex, 1);
-    this.memberToRoom.delete(targetProfileId);
-
+    this.leave(targetProfileId);
     return room;
-  }
-
-  setGame(roomId: string, game: GameEngine<any>): void {
-    const room = this.rooms.get(roomId);
-    if (!room) {
-      throw new Error("Room not found");
-    }
-
-    room.currentGame = game;
   }
 
   private generateRoomCode(): string {
@@ -139,13 +150,61 @@ export class RoomService {
     return code;
   }
 
-  cleanupEmptyRooms(): void {
-    for (const [roomId, room] of Array.from(this.rooms.entries())) {
-      if (room.members.length === 0) {
-        this.rooms.delete(roomId);
+  cleanupStaleRooms(maxInActiveMs: number): void {
+    const now = Date.now();
+
+    this.rooms.forEach((room) => {
+      if (room.members.length === 0 || now - room.lastActiveAt > maxInActiveMs) {
+        room.members.forEach((member) => {
+          this.clearDisconnectionTimerIfExists(member.id);
+          this.memberToRoom.delete(member.id);
+        });
+        this.rooms.delete(room.roomId);
         this.roomCodes.delete(room.roomCode);
       }
+    });
+  }
+
+  private clearDisconnectionTimerIfExists(profileId: string) {
+    const timer = this.disconnectionTimers.get(profileId);
+    if (!timer) return false;
+
+    clearTimeout(timer);
+    this.disconnectionTimers.delete(profileId);
+    return true;
+  }
+
+  handleReconnect(profileId: string) {
+    const room = this.getRoomByMember(profileId);
+    if (!room) return null;
+
+    const member = room.members.find((r) => r.id === profileId);
+    if (member && member.status === "disconnected") {
+      member.status = "connected";
+      this.clearDisconnectionTimerIfExists(profileId);
     }
+
+    return room;
+  }
+
+  handleDisconnect(profileId: string) {
+    const room = this.getRoomByMember(profileId);
+    if (!room) return null;
+
+    const member = room.members.find((r) => r.id === profileId);
+    if (member) {
+      member.status = "disconnected";
+
+      /** Set a timer to kick the player after 60 seconds */
+      const disconnectionTimer = setTimeout(() => {
+        console.log(`Player ${profileId} did not reconnect in time. Removing`);
+        this.leave(profileId);
+      }, 60000 * 10);
+
+      this.disconnectionTimers.set(profileId, disconnectionTimer);
+    }
+
+    return room;
   }
 
   shutdown() {

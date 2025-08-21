@@ -1,6 +1,10 @@
+import { randomUUIDv7 } from "bun";
+
+type WebSocket = Bun.ServerWebSocket<unknown>;
+
 export interface WebSocketConnection {
   id: string;
-  socket: Bun.WebSocket;
+  socket: WebSocket;
   lastPing: number;
 }
 
@@ -11,9 +15,9 @@ interface Message {
 
 export class WebSocketManager<M extends Message> {
   private connectionsById = new Map<string, WebSocketConnection>();
-  private connectionToId = new WeakMap<Bun.WebSocket, string>();
+  private connectionToId = new WeakMap<WebSocket, string>();
 
-  addConnection(socket: Bun.WebSocket): string {
+  addConnection(socket: WebSocket): string {
     const connectionId = this.generateConnectionId();
     const connection: WebSocketConnection = {
       id: connectionId,
@@ -29,15 +33,17 @@ export class WebSocketManager<M extends Message> {
 
   removeConnection(connectionId: string): void {
     const connection = this.connectionsById.get(connectionId);
-    if (connection) this.connectionToId.delete(connection.socket);
-    this.connectionsById.delete(connectionId);
+    if (connection) {
+      this.connectionToId.delete(connection.socket);
+      this.connectionsById.delete(connectionId);
+    }
   }
 
   getConnection(connectionId: string): WebSocketConnection | null {
     return this.connectionsById.get(connectionId) || null;
   }
 
-  getConnectionId(socket: Bun.WebSocket): string | null {
+  getConnectionId(socket: WebSocket): string | null {
     return this.connectionToId.get(socket) || null;
   }
 
@@ -73,13 +79,25 @@ export class WebSocketManager<M extends Message> {
     if (connection) connection.lastPing = Date.now();
   }
 
-  cleanupStaleConnections(maxStaleMs: number = 60000): void {
+  cleanupStaleConnections(maxStaleMs: number): void {
     const now = Date.now();
     Array.from(this.connectionsById.entries()).forEach(([id, connection]) => {
       if (now - connection.lastPing > maxStaleMs) {
+        try {
+          connection.socket.close(1001, "Connection timed out due to inactivity");
+        } catch (err) {
+          console.error(`Error closing stale connection ${id}:`, err);
+        }
         this.removeConnection(id);
       }
     });
+  }
+
+  getStats() {
+    return {
+      totalConnections: this.connectionsById.size,
+      activeConnections: this.getActiveConnectionIds().length,
+    };
   }
 
   getActiveConnectionIds(): string[] {
@@ -93,6 +111,6 @@ export class WebSocketManager<M extends Message> {
   }
 
   private generateConnectionId(): string {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    return randomUUIDv7();
   }
 }

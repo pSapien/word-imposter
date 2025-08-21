@@ -1,79 +1,74 @@
-import { GameEngine, GameAction } from "../../core/GameEngine.js";
-import { RoomMember, WordImposterState, WordImposterConfig } from "@imposter/shared";
+import type { GameEngine, GameAction, GameEnginePlayer } from "@server/core";
+import type {
+  WordImposterState,
+  WordImposterConfig,
+  WordImposterImpostersWinSummary,
+  WordImposterCiviliansWinSummary,
+} from "@imposter/shared";
+import { random, randomSlice } from "@server/utils";
 import { getRandomWordPair } from "./wordpairs.js";
-import { random, randomArr } from "src/utils/random.js";
-
-interface GamePlayer {
-  id: string;
-  displayName: string;
-  role: "host" | "player" | "spectator";
-}
+import { computeWinner, getEliminatedPlayerByVotes } from "./logic/index.js";
 
 export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   readonly gameId: string;
-  readonly players: GamePlayer[] = [];
   readonly config: WordImposterConfig;
   private state: WordImposterState;
-  public status: "waiting" | "active" | "finished" = "waiting";
 
   constructor(config: WordImposterConfig) {
     this.config = config;
     this.gameId = `imposter-${Date.now()}`;
 
     this.state = {
-      stage: "setup",
-      round: 1,
+      stage: "waiting",
+      round: 0,
       imposterIds: [],
-      eliminatedPlayerIds: [],
       civilianWord: "",
       imposterWord: "",
+      players: [],
       votes: {},
+      summary: undefined,
     };
   }
 
-  addPlayer(member: RoomMember): boolean {
-    /**
-     * remove previous player if exists
-     * this is done just in case if there is profile change or role change
-     */
-    this.removePlayer(member.id);
+  startGame(players: GameEnginePlayer[]): boolean {
+    const wordPair = getRandomWordPair(random(this.config.wordCategories));
 
-    this.players.push({
-      id: member.id,
-      displayName: member.displayName,
-      role: member.role,
+    this.state.stage = "discussion";
+    this.state.round = 1;
+    this.state.players = players.map((player) => {
+      return {
+        displayName: player.displayName,
+        id: player.id,
+        role: player.role,
+        status: "alive",
+        hasVoted: false,
+      };
     });
+    this.state.imposterIds = randomSlice(players, this.config.imposterCount).map((p) => p.id);
+    this.state.civilianWord = wordPair.civilianWord;
+    this.state.imposterWord = wordPair.imposterWord;
 
-    return true;
-  }
-
-  removePlayer(profileId: string): boolean {
-    const playerIndex = this.players.findIndex((p) => p.id === profileId);
-    if (playerIndex === -1) return false;
-
-    this.players.splice(playerIndex, 1);
-    return true;
-  }
-
-  startGame(members: RoomMember[]): boolean {
-    members.forEach((member) => this.addPlayer(member));
-
-    const activePlayers = this.players.filter((p) => p.role !== "spectator");
-    if (activePlayers.length < this.config.minPlayers) return false;
-
-    this.status = "active";
-    this.setupGame();
     return true;
   }
 
   validateGameAction(playerId: string, action: GameAction<any>) {
-    const player = this.players.find((player) => player.id === playerId);
+    const player = this.state.players.find((player) => player.id === playerId);
     if (!player) throw new Error("Player not found");
+
+    if (action.type === "start_voting") {
+      if (this.state.stage !== "discussion") throw new Error("This is not the stage to start voting");
+      if (player.role !== "host") throw new Error("Only host can start voting");
+    }
 
     if (action.type === "cast_vote") {
       if (this.state.stage !== "voting") throw new Error("This is not the stage for voting");
-      if (this.state.eliminatedPlayerIds.includes(player.id)) throw new Error("Not allowed to vote");
+      if (player.status === "eliminated") throw new Error("Not allowed to vote");
       if (player.role === "spectator") throw new Error("Spectator are not allowed to vote");
+    }
+
+    if (action.type === "end_voting") {
+      if (this.state.stage !== "voting") throw new Error("This is not the stage to end voting");
+      if (player.role !== "host") throw new Error("Only host can end voting");
     }
 
     return true;
@@ -93,27 +88,26 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   }
 
   /** Return a personalized game state for a given member */
-  getPlayerViewState(member: RoomMember): WordImposterState & { playerRole?: string } {
-    const playerViewState = {
-      ...this.state,
-      votes: {
-        ...this.state.votes,
-      },
-    };
+  getPlayerViewState(profileId: string): WordImposterState {
+    const player = this.state.players.find((p) => p.id === profileId);
+    if (!player) throw new Error("Play Not Found");
 
     /** spectator gets to see everything */
-    if (member.role == "spectator") return playerViewState;
+    if (player.role === "spectator") return this.state;
 
-    /** the imposter see `imposterWordz` as their civilianWord */
-    if (playerViewState.imposterIds.includes(member.id)) {
-      playerViewState.civilianWord = this.state.imposterWord;
-    }
+    /** when there is results, we show everything */
+    if (this.state.stage === "results") return this.state;
 
-    /** all the player except spectator don't get to see `imposterWord` or `imposterIds` */
-    playerViewState.imposterWord = "";
-    playerViewState.imposterIds = [];
+    const clientState = structuredClone(this.state);
 
-    return playerViewState;
+    clientState.votes = pickVote(player.id, clientState.votes);
+    clientState.imposterIds = [];
+    clientState.imposterWord = "";
+    clientState.civilianWord = this.state.imposterIds.includes(player.id)
+      ? this.state.imposterWord
+      : this.state.civilianWord;
+
+    return clientState;
   }
 
   private handleStartVote(playerId: string, action: GameAction<any>) {
@@ -122,96 +116,87 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
 
   private handleCastVote(playerId: string, action: GameAction<any>) {
     /** no voteeId means the player skipped the vote */
+    const player = this.state.players.find((player) => player.id === playerId);
+    if (!player) throw new Error("Player Not Found");
+
     this.state.votes[playerId] = action.payload?.voteeId || "";
+    player.hasVoted = true;
   }
 
   private handleEndVoting(playerId: string, action: GameAction<any>) {
+    const eliminatedPlayers = getEliminatedPlayerByVotes(this.state.votes) as string[];
+    const eliminatedPlayerId = eliminatedPlayers && eliminatedPlayers.length === 1 ? eliminatedPlayers[0] : null;
+
     this.state.stage = "results";
 
-    const eliminatedPlayers = getEliminatedPlayerByVotes(this.state.votes);
-    const eliminatedPlayerId = eliminatedPlayers.length === 1 ? eliminatedPlayers[0] : null;
-    const imposterFound = this.state.imposterIds.includes(eliminatedPlayerId);
+    if (!eliminatedPlayerId) {
+      this.state.summary = {
+        type: "votes-tied",
+        winner: null,
+      };
+      return;
+    }
 
-    if (eliminatedPlayerId) this.state.eliminatedPlayerIds.push(eliminatedPlayerId);
+    const eliminatedPlayer = this.state.players.find((p) => p.id === eliminatedPlayerId)!;
+    eliminatedPlayer.status = "eliminated";
 
-    const winner = this.findWinner();
-
-    this.state.roundResults = {
-      eliminatedPlayerId,
-      imposterFound,
-      imposterWord: this.state.imposterWord,
-      winner,
-    };
-
-    if (winner) this.status = "finished";
-  }
-
-  /** Check if the game should end and determine winner */
-  private findWinner(): "imposters" | "civilians" | null {
-    const activePlayers = this.players.filter(
-      (p) => p.role !== "spectator" && !this.state.eliminatedPlayerIds.includes(p.id)
+    const remainingImposters = this.state.imposterIds.filter(
+      (id) => this.state.players.find((p) => p.id === id)?.status !== "eliminated"
     );
+    const winner = computeWinner({
+      players: this.state.players,
+      imposterIds: this.state.imposterIds,
+      remainingImposters,
+    });
 
-    const activeImposters = activePlayers.filter((p) => this.state.imposterIds.includes(p.id));
-    const activeCivilians = activePlayers.filter((p) => !this.state.imposterIds.includes(p.id));
-
-    // If no imposters remain, civilians win
-    if (activeImposters.length === 0) {
-      return "civilians";
+    if (winner === "imposters") {
+      this.state.summary = {
+        type: "imposters-win",
+        winner: "imposters",
+        imposterWord: this.state.imposterWord,
+        civilianWord: this.state.civilianWord,
+        remainingImposters: this.state.imposterIds.filter(
+          (id) => this.state.players.find((p) => p.id === id)?.status !== "eliminated"
+        ),
+      } as WordImposterImpostersWinSummary;
+      return;
     }
 
-    // If imposters are equal to or outnumber civilians, imposters win
-    if (activeImposters.length >= activeCivilians.length) {
-      return "imposters";
+    if (winner === "civilians") {
+      this.state.summary = {
+        type: "civilians-win",
+        winner: "civilians",
+        imposterWord: this.state.imposterWord,
+        civilianWord: this.state.civilianWord,
+        imposterPlayerIds: this.state.players
+          .filter((p) => p.status === "eliminated" && this.state.imposterIds.includes(p.id))
+          .map((p) => p.id),
+      } as WordImposterCiviliansWinSummary;
+      return;
     }
 
-    // Otherwise, no winner yet
-    return null;
+    const eliminatedIsImposter = this.state.imposterIds.includes(eliminatedPlayerId);
+    this.state.summary = {
+      type: eliminatedIsImposter ? "imposter-found" : "civilian-found",
+      winner: null,
+      eliminatedPlayerId: eliminatedPlayerId,
+      remainingImposters: this.state.imposterIds.filter(
+        (id) => this.state.players.find((p) => p.id === id)?.status !== "eliminated"
+      ),
+    };
   }
 
   private handleStartNextRound() {
     this.state.stage = "discussion";
-    this.state.roundResults = undefined;
+    this.state.summary = undefined;
     this.state.round += 1;
     this.state.votes = {};
-  }
-
-  /** Randomly assign imposters and words */
-  private setupGame(): void {
-    const activePlayers = this.players.filter((p) => p.id && p.role !== "spectator");
-    const imposterCount = 1;
-
-    /** Select imposters and get a random word pair */
-    this.state.imposterIds = randomArr(activePlayers, imposterCount).map((p) => p.id);
-    console.log("WordCategories are:", this.config.settings);
-    const wordPair = getRandomWordPair(random(this.config.settings.wordCategories));
-
-    this.state.civilianWord = wordPair.civilianWord;
-    this.state.imposterWord = wordPair.imposterWord;
-    this.state.stage = "discussion";
+    this.state.players.forEach((player) => {
+      player.hasVoted = false;
+    });
   }
 }
 
-function getEliminatedPlayerByVotes(votes: Record<string, string>): string[] {
-  const voteCounts: Record<string, number> = {};
-  let skips = 0;
-
-  Object.values(votes).forEach((votee) => {
-    if (votee) {
-      voteCounts[votee] = (voteCounts[votee] || 0) + 1;
-    } else {
-      skips++;
-    }
-  });
-
-  if (Object.keys(voteCounts).length === 0) return [];
-
-  const maxVotes = Math.max(...Object.values(voteCounts));
-
-  if (skips >= maxVotes) return [];
-  if (maxVotes === 0) return [];
-
-  return Object.entries(voteCounts)
-    .filter(([_, count]) => count === maxVotes)
-    .map(([player]) => player);
+function pickVote(id: string, votes: Record<string, string>) {
+  return id in votes ? { [id]: votes[id] as string } : {};
 }

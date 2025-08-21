@@ -3,19 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { cn } from "@app/utils";
-import { useLocalStorage } from "@uidotdev/usehooks";
-import { Constants } from "@app/constants";
 import { Button, Input, Card, CardContent, CardHeader } from "@app/components";
 import { getGameInfo } from "../../game-registry.ts";
 import { Validators } from "../../../../shared";
+import { ArrowLeft } from "lucide-react";
+import { useLocalStorage } from "@app/hooks";
+import { NameStorage, RoleStorage, RoomNameStorage } from "../../../context/profile.ts";
 
 export function WordImposterRoom() {
   const navigate = useNavigate();
   const { status, send, login } = useSocket();
 
-  const [playerName, setPlayerName] = useLocalStorage(Constants.StorageKeys.Name, "");
-  const [roomName, setRoomName] = useLocalStorage(Constants.StorageKeys.RoomName, "");
-  const [_, setRole] = useLocalStorage(Constants.StorageKeys.Role, "player");
+  const [playerName, setPlayerName] = useLocalStorage(NameStorage);
+  const [roomName, setRoomName] = useLocalStorage(RoomNameStorage);
+  const [_, setRole] = useLocalStorage(RoleStorage);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
     playerName: "",
@@ -96,7 +97,7 @@ export function WordImposterRoom() {
         variant="ghost"
         className="absolute top-4 left-4 text-white hover:bg-white/20"
       >
-        ←
+        <ArrowLeft size={32} strokeWidth={2.5} />
       </Button>
 
       <div className="w-full max-w-md space-y-6">
@@ -104,12 +105,6 @@ export function WordImposterRoom() {
           <div className="text-6xl mb-4">{gameInfo.icon}</div>
           <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">{gameInfo.name}</h1>
           <p className="text-white/80 text-lg">{gameInfo.description}</p>
-          <div className="flex justify-center space-x-4 mt-4 text-white/70 text-sm">
-            <span>
-              👥 {gameInfo.minPlayers}-{gameInfo.maxPlayers} players
-            </span>
-            <span>⏱️ {gameInfo.estimatedTime}</span>
-          </div>
         </div>
 
         <Card variant="glass" className="backdrop-blur-xl">
@@ -126,6 +121,7 @@ export function WordImposterRoom() {
               disabled={isLoading}
               error={errors.playerName}
               required
+              autoCapitalize="off"
             />
 
             <Input
@@ -137,6 +133,7 @@ export function WordImposterRoom() {
               disabled={isLoading}
               error={errors.roomName}
               required
+              autoCapitalize="off"
             />
 
             <div className="space-y-4">

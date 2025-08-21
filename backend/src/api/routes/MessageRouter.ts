@@ -21,8 +21,8 @@ export class MessageRouter {
   }
 
   private setupRoutes() {
-    this.routes.set("login", this.handlers.auth.handleLogin);
-    this.routes.set("ping", this.handlePing);
+    this.routes.set("login", this.handlers.auth.handleLogin.bind(this.handlers.auth));
+    this.routes.set("ping", this.handlePing.bind(this));
 
     this.routes.set(
       "create_room",

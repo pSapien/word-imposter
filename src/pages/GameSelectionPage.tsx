@@ -24,9 +24,8 @@ export function GameSelectionPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {AVAILABLE_GAMES.map((game) => (
-            <button onClick={() => handleGameSelect(game.id)}>
+            <button onClick={() => handleGameSelect(game.id)} key={game.id}>
               <Card
-                key={game.id}
                 variant="glass"
                 className={cn(
                   "cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95",

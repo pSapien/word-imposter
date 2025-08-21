@@ -1,15 +1,17 @@
-import { RoomMember } from "@imposter/shared";
-
 export interface GameAction<T extends { playerId: string }> {
   type: string;
   payload: T;
 }
 
+export type GameEnginePlayer = {
+  id: string;
+  displayName: string;
+  role: string;
+};
+
 export interface GameEngine<S extends {}> {
-  addPlayer(member: RoomMember): boolean;
-  removePlayer(member: RoomMember["id"]): boolean;
-  startGame(member: RoomMember[]): boolean;
+  startGame(players: GameEnginePlayer[]): boolean;
   processAction(playerId: string, action: GameAction<any>): void;
   validateGameAction(playerId: string, action: GameAction<any>): void;
-  getPlayerViewState(member: RoomMember): S;
+  getPlayerViewState(playerId: string): S;
 }
