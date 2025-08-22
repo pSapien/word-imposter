@@ -31,6 +31,9 @@ module.exports = {
         pulseSlow: "pulseSlow 6s ease-in-out infinite",
         pulseSlower: "pulseSlower 8s ease-in-out infinite",
       },
+      fontFamily: {
+        io: ["Iosevka Web", "monospace"],
+      },
     },
   },
   plugins: [],
