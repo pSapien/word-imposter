@@ -192,7 +192,7 @@ export function WordImposterGameUI() {
                 isCurrentUser: p.id === currentUserId,
                 isHost: p.id === room?.hostId,
                 hasVoted: p.hasVoted,
-                imposterWord: gameState.imposterWord,
+                imposterWord: gameState.imposterIds.includes(p.id) ? gameState.imposterWord : "",
                 isEliminated: p.status === "eliminated",
               }))}
               stage={gameState.stage}
