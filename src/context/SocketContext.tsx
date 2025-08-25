@@ -36,7 +36,6 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const [ws] = useState(
     new ReconnectingWebSocket(Constants.Endpoint, "", {
       maxRetries: Constants.Connection.MaxRetries,
-      // debug: true,
     })
   );
 
@@ -48,9 +47,11 @@ export function SocketProvider({ children }: SocketProviderProps) {
   }, []);
 
   const login = useCallback((playerName: string) => {
+    const token = TokenStorage.get();
     send({
       type: "login",
       payload: {
+        token: token ? token : undefined,
         displayName: playerName.trim(),
       },
     });
