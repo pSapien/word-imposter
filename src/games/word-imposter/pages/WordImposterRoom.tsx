@@ -144,7 +144,7 @@ export function WordImposterRoom() {
                 size="lg"
                 disabled={isLoading || !isFormValid}
               >
-                🏠 Create New Room
+                🏠 Join As Host
               </Button>
 
               <div className="relative">

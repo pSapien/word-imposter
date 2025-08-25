@@ -22,12 +22,46 @@ export class RoomService {
   private rooms = new Map<string, GameRoom>();
   private roomCodes = new Map<string, string>();
   private memberToRoom = new Map<string, string>();
-  private disconnectionTimers = new Map<string, NodeJS.Timeout>();
+  private graceDisconnectionTimers = new Map<string, NodeJS.Timeout>();
 
   create(host: GuestProfile, roomName: string): GameRoom {
+    const roomId = roomName.trim();
+    const existingRoom = this.rooms.get(roomId);
+
+    if (existingRoom) {
+      // It's the same host re-creating the room. Let's treat this as a rejoin.
+      if (existingRoom.hostId === host.id) {
+        let hostMember = existingRoom.members.find((m) => m.id === host.id);
+        if (hostMember) {
+          hostMember.status = "connected";
+        } else {
+          // If the host wasn't in the list for some reason, add them back.
+          existingRoom.members.push({
+            id: host.id,
+            displayName: host.displayName,
+            role: "host",
+            status: "connected",
+          });
+        }
+
+        // Update the mapping in case they had left
+        this.memberToRoom.set(host.id, existingRoom.roomId);
+
+        // Clear any pending disconnection timer for the host
+        this.clearDisconnectionTimerIfExists(host.id);
+
+        this.updateLastActive(existingRoom.roomId);
+        return existingRoom;
+      } else {
+        // A different user is trying to use an existing room name.
+        throw new Error("Room name already taken.");
+      }
+    }
+
+    // --- Original creation logic from here ---
     const roomCode = this.generateRoomCode();
     const newRoom: GameRoom = {
-      roomId: roomName.trim(),
+      roomId: roomId,
       name: roomName.trim(),
       roomCode,
       hostId: host.id,
@@ -48,13 +82,15 @@ export class RoomService {
       },
     };
 
-    if (this.rooms.has(newRoom.roomId)) throw new Error("Room already created!");
-
     this.rooms.set(newRoom.roomId, newRoom);
     this.roomCodes.set(roomCode, newRoom.roomId);
     this.memberToRoom.set(host.id, newRoom.roomId);
 
     return newRoom;
+  }
+
+  exists(roomId: string) {
+    return this.rooms.has(roomId);
   }
 
   setGame(room: GameRoom, game: GameEngine<any>) {
@@ -108,10 +144,10 @@ export class RoomService {
       this.roomCodes.delete(room.roomCode);
     }
 
-    const timer = this.disconnectionTimers.get(profileId);
+    const timer = this.graceDisconnectionTimers.get(profileId);
     if (timer) {
       clearTimeout(timer);
-      this.disconnectionTimers.delete(profileId);
+      this.graceDisconnectionTimers.delete(profileId);
     }
 
     return room;
@@ -166,11 +202,11 @@ export class RoomService {
   }
 
   private clearDisconnectionTimerIfExists(profileId: string) {
-    const timer = this.disconnectionTimers.get(profileId);
+    const timer = this.graceDisconnectionTimers.get(profileId);
     if (!timer) return false;
 
     clearTimeout(timer);
-    this.disconnectionTimers.delete(profileId);
+    this.graceDisconnectionTimers.delete(profileId);
     return true;
   }
 
@@ -201,7 +237,7 @@ export class RoomService {
         this.leave(profileId);
       }, 60000 * 10);
 
-      this.disconnectionTimers.set(profileId, disconnectionTimer);
+      this.graceDisconnectionTimers.set(profileId, disconnectionTimer);
     }
 
     return room;
