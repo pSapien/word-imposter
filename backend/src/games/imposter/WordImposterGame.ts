@@ -95,13 +95,11 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     /** spectator gets to see everything */
     if (player.role === "spectator") return this.state;
 
-    /** when there is results, we show everything */
-    if (this.state.stage === "results") return this.state;
-
     const clientState = structuredClone(this.state);
 
-    clientState.votes = pickVote(player.id, clientState.votes);
-    clientState.imposterIds = [];
+    if (this.state.stage === "voting") {
+      clientState.votes = pickVote(player.id, clientState.votes);
+    }
     clientState.imposterWord = "";
     clientState.civilianWord = this.state.imposterIds.includes(player.id)
       ? this.state.imposterWord
