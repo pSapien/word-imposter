@@ -10,6 +10,7 @@ type PlayerListPlayer = {
   isEliminated: boolean;
   imposterWord: string;
   hasVoted: boolean;
+  submittedWord?: string;
 };
 
 interface Props {
@@ -83,6 +84,10 @@ export function PlayerList(props: Props) {
                       </span>
                     )}
                   </div>
+
+                  {player.submittedWord && (stage === "discussion" || stage === "voting") && (
+                    <div className="text-sm text-gray-300 italic mt-1">“{player.submittedWord}”</div>
+                  )}
 
                   {player.hasVoted && (
                     <div className="text-xs text-green-400 font-medium flex items-center mt-1">✅ Voted</div>
