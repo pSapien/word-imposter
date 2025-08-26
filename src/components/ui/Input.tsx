@@ -30,14 +30,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, labe
         {...props}
       />
       {/* Reserve space for error, such that whenever their is error it does not shift layout */}
-      <p
-        className={cn(
-          "mt-2 text-sm min-h-[1.25rem] transition-opacity duration-200", // ~line-height for one line of text
-          error ? "opacity-100  text-red-600" : "text-transparent"
-        )}
-      >
-        {error || "placeholder"}
-      </p>
+      {error && (
+        <p
+          className={cn(
+            "mt-2 text-sm min-h-[1.25rem] transition-opacity duration-200", // ~line-height for one line of text
+            error ? "opacity-100  text-red-600" : "text-transparent"
+          )}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 });

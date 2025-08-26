@@ -1,4 +1,5 @@
-export * from "./WordCard";
+export * from './WordCard';
+export * from './WordSubmissionSheet';
 export * from "./GameSettingsSection";
 export * from "./GameSummary.tsx";
 export * from "./FooterSection";

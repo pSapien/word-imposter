@@ -13,6 +13,7 @@ import {
   BackgroundEffects,
   GameHeader,
   VotingProgress,
+  WordSubmissionSheet,
 } from "../components";
 import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
 import { useLocalStorage } from "@app/hooks";
@@ -25,13 +26,15 @@ export function WordImposterGameUI() {
   const [role] = useLocalStorage(RoleStorage);
 
   const [room, setRoom] = useState<Room | null>(null);
-
   const [gameState, setGameState] = useState<WordImposterState | null>(null);
+  const [isSubmissionSheetOpen, setIsSubmissionSheetOpen] = useState(false);
 
   const players = room?.members.filter((p) => p.role !== "spectator") || [];
   const spectators = room?.members.filter((p) => p.role === "spectator") || [];
   const isVotingPhase = Boolean(gameState?.stage === "voting");
   const isHost = room?.hostId === currentUserId;
+
+  const me = gameState?.players.find((p) => p.id === currentUserId);
 
   useSocketHandler({
     room_joined: (payload) => {
@@ -72,6 +75,18 @@ export function WordImposterGameUI() {
         settings: gameSettings,
       },
     });
+  };
+
+  const handleWordSubmission = (submittedWord: string) => {
+    send({
+      type: "game_action",
+      payload: {
+        type: "submit_word",
+        payload: { word: submittedWord },
+      },
+    });
+    setIsSubmissionSheetOpen(false);
+    toast.success("Word submitted successfully!");
   };
 
   const handleStartVoting = () => {
@@ -143,6 +158,7 @@ export function WordImposterGameUI() {
 
   const voteCount = Number(gameState?.players.filter((player) => player.hasVoted).length);
   const totalActivePlayers = gameState ? getTotalActivePlayers(gameState) : [];
+  const playerIsActive = gameState?.players.some((p) => p.status === "alive" && p.role !== "spectator");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
@@ -164,13 +180,15 @@ export function WordImposterGameUI() {
         {!gameState && room && (
           <>
             <PlayerList
-              players={players.map((p) => ({
+              players={sortRoomMembers(players).map((p) => ({
                 ...p,
                 isCurrentUser: p.id === currentUserId,
                 isHost: p.id === room?.hostId,
                 hasVoted: false,
                 imposterWord: "",
                 isEliminated: false,
+                hasSubmitted: false,
+                submittedWord: "",
               }))}
               stage=""
               currentUserId={currentUserId}
@@ -194,6 +212,8 @@ export function WordImposterGameUI() {
                 hasVoted: p.hasVoted,
                 imposterWord: gameState.imposterIds.includes(p.id) ? gameState.imposterWord : "",
                 isEliminated: p.status === "eliminated",
+                hasSubmitted: p.hasSubmittedWord,
+                submittedWord: gameState?.playerWordSubmissions[p.id],
               }))}
               stage={gameState.stage}
               currentUserId={currentUserId}
@@ -211,14 +231,31 @@ export function WordImposterGameUI() {
         <div className="h-24" />
       </main>
 
-      {isHost && (
+      {gameState?.stage === "discussion" && playerIsActive && (
+        <WordSubmissionSheet
+          isOpen={isSubmissionSheetOpen}
+          players={totalActivePlayers.map((p) => {
+            return {
+              hasSubmitted: p.hasSubmittedWord,
+              id: p.id,
+              name: p.displayName,
+            };
+          })}
+          onClose={() => setIsSubmissionSheetOpen(false)}
+          onSubmit={handleWordSubmission}
+        />
+      )}
+
+      {me?.role !== "spectator" && (
         <FooterSection
           stage={gameState?.stage ?? ""}
+          isHost={isHost}
           noWinner={Boolean(gameState?.summary?.winner === null)}
           onStartGame={handleStartGame}
           onStartVoting={handleStartVoting}
           onEndVoting={handleEndVoting}
           onNextRound={handleNextRound}
+          onSubmit={() => setIsSubmissionSheetOpen(true)}
         />
       )}
     </div>
@@ -250,6 +287,17 @@ export function sortPlayers(players: WordImposterStatePlayer[]): WordImposterSta
     // 2. Alive players before eliminated
     if (a.status === "eliminated" && b.status !== "eliminated") return 1;
     if (a.status !== "eliminated" && b.status === "eliminated") return -1;
+
+    // 3. Alphabetical by displayName
+    return a.displayName.localeCompare(b.displayName);
+  });
+}
+
+export function sortRoomMembers(members: Room["members"]): Room["members"] {
+  return members.slice().sort((a, b) => {
+    // 1. Host comes first
+    if (a.role === "host") return -1;
+    if (b.role === "host") return 1;
 
     // 3. Alphabetical by displayName
     return a.displayName.localeCompare(b.displayName);

@@ -4,6 +4,7 @@ export interface WordImposterStatePlayer {
   role: "host" | "player" | "spectator" | string;
   status: "alive" | "eliminated";
   hasVoted: boolean;
+  hasSubmittedWord: boolean;
 }
 
 export type WordImposterRoundSummary =
@@ -48,6 +49,7 @@ export interface WordImposterState {
   imposterWord: string;
   players: WordImposterStatePlayer[];
   votes: Record<string, string>;
+  playerWordSubmissions: Record<string, string>;
   summary?: WordImposterRoundSummary;
 }
 

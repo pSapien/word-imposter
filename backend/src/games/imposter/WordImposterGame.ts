@@ -26,6 +26,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
       imposterWord: "",
       players: [],
       votes: {},
+      playerWordSubmissions: {},
       summary: undefined,
     };
   }
@@ -42,6 +43,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
         role: player.role,
         status: "alive",
         hasVoted: false,
+        hasSubmittedWord: false,
       };
     });
     this.state.imposterIds = randomSlice(players, this.config.imposterCount).map((p) => p.id);
@@ -54,6 +56,12 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   validateGameAction(playerId: string, action: GameAction<any>) {
     const player = this.state.players.find((player) => player.id === playerId);
     if (!player) throw new Error("Player not found");
+
+    if (action.type === "submit_word") {
+      if (this.state.stage !== "discussion") throw new Error("Not the time to submit words.");
+      if (player.role === "spectator") throw new Error("Spectator are not allowed to submit");
+      if (player.status === "eliminated") throw new Error("Not allowed to submit");
+    }
 
     if (action.type === "start_voting") {
       if (this.state.stage !== "discussion") throw new Error("This is not the stage to start voting");
@@ -76,6 +84,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
 
   processAction(playerId: string, action: GameAction<any>): void {
     const handlers: Record<string, (id: string, action: GameAction<any>) => void> = {
+      submit_word: this.handleSubmitWord.bind(this),
       start_voting: this.handleStartVote.bind(this),
       cast_vote: this.handleCastVote.bind(this),
       end_voting: this.handleEndVoting.bind(this),
@@ -90,7 +99,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   /** Return a personalized game state for a given member */
   getPlayerViewState(profileId: string): WordImposterState {
     const player = this.state.players.find((p) => p.id === profileId);
-    if (!player) throw new Error("Play Not Found");
+    if (!player) throw new Error("Player Not Found");
 
     /** spectator gets to see everything */
     if (player.role === "spectator") return this.state;
@@ -106,6 +115,14 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
       : this.state.civilianWord;
 
     return clientState;
+  }
+
+  private handleSubmitWord(playerId: string, action: GameAction<any>) {
+    const player = this.state.players.find((player) => player.id === playerId);
+    if (!player) throw new Error("Player Not Found");
+
+    this.state.playerWordSubmissions[playerId] = action.payload.word;
+    player.hasSubmittedWord = true;
   }
 
   private handleStartVote(playerId: string, action: GameAction<any>) {
@@ -191,10 +208,16 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
     this.state.votes = {};
     this.state.players.forEach((player) => {
       player.hasVoted = false;
+      player.hasSubmittedWord = false;
     });
+    this.state.playerWordSubmissions = {};
   }
 }
 
 function pickVote(id: string, votes: Record<string, string>) {
   return id in votes ? { [id]: votes[id] as string } : {};
+}
+
+function pickWord(id: string, submission: Record<string, string>) {
+  return id in submission ? { [id]: submission[id] as string } : {};
 }
