@@ -1,6 +1,10 @@
 import type { GameEngine } from "../GameEngine.js";
-import type { GuestProfile } from "./SessionService.js";
 import type { RoomMember } from "@imposter/shared";
+
+type RoomProfile = {
+  id: string;
+  displayName: string;
+};
 
 export interface GameRoom {
   roomId: string;
@@ -24,7 +28,7 @@ export class RoomService {
   private memberToRoom = new Map<string, string>();
   private graceDisconnectionTimers = new Map<string, NodeJS.Timeout>();
 
-  create(host: GuestProfile, roomName: string): GameRoom {
+  create(host: RoomProfile, roomName: string): GameRoom {
     const roomId = roomName.trim();
     const existingRoom = this.rooms.get(roomId);
 
@@ -104,7 +108,7 @@ export class RoomService {
     return room;
   }
 
-  join(roomId: string, profile: GuestProfile, role: string) {
+  join(roomId: string, profile: RoomProfile, role: string) {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error("Room not found");
 
