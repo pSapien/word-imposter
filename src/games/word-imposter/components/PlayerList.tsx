@@ -10,6 +10,8 @@ type PlayerListPlayer = {
   isEliminated: boolean;
   imposterWord: string;
   hasVoted: boolean;
+  hasSubmitted: boolean;
+  submittedWord: string;
 };
 
 interface Props {
@@ -39,7 +41,7 @@ export function PlayerList(props: Props) {
           </span>
         </h3>
       </CardHeader>
-      <CardContent className="pt-0 px-6 space-y-3">
+      <CardContent className="pt-0 px-6">
         {players.map((player) => {
           const isCurrentUser = player.isCurrentUser;
           const isEliminated = player.isEliminated;
@@ -49,21 +51,24 @@ export function PlayerList(props: Props) {
             <div
               key={player.id}
               className={cn(
-                "flex items-center justify-between p-4 rounded-xl transition-all duration-200",
+                "flex items-center justify-between p-2 rounded-xl transition-all duration-200",
                 "hover:bg-white/20",
                 isEliminated && "opacity-60 bg-gray-500/10",
                 isCurrentUser && "bg-blue-500/10 border border-blue-300/50"
               )}
             >
               <div className="flex items-center space-x-4 min-w-0">
-                <div
+                {/* <div
                   className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg",
                     isEliminated ? "bg-gray-600" : "bg-gradient-to-r from-blue-600 to-purple-700"
                   )}
                 >
                   {player.displayName.charAt(0).toUpperCase()}
-                </div>
+                </div> */}
+
+                {/* placeholder for the avatar frame */}
+                <div className="h-12" />
 
                 <div className="min-w-0">
                   <div className="flex items-center space-x-2">
@@ -84,6 +89,12 @@ export function PlayerList(props: Props) {
                     )}
                   </div>
 
+                  {stage === "discussion" && player.hasSubmitted && (
+                    <div className="text-xs text-green-400 font-medium flex items-center mt-1">✅ Submitted</div>
+                  )}
+                  {stage === "voting" && player.submittedWord && (
+                    <div className="text-sm text-gray-300 italic mt-1">“{player.submittedWord}”</div>
+                  )}
                   {player.hasVoted && (
                     <div className="text-xs text-green-400 font-medium flex items-center mt-1">✅ Voted</div>
                   )}
