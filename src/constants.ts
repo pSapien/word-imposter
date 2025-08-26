@@ -12,7 +12,7 @@ export const Constants = {
   ToastShowDuration: 3000,
 
   Connection: {
-    PingInterval: 30 * 1000,
+    PingInterval: 15 * 1000,
     MinReconnectionDelay: 1 * 1000,
     MaxRetries: 5,
   },
