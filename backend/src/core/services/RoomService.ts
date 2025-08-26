@@ -58,7 +58,6 @@ export class RoomService {
       }
     }
 
-    // --- Original creation logic from here ---
     const roomCode = this.generateRoomCode();
     const newRoom: GameRoom = {
       roomId: roomId,

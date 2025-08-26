@@ -19,3 +19,9 @@ export function randomIdx<T>(arr: T[]): number {
 export function random<T>(arr: T[]): T {
   return arr[randomIdx(arr)] as T;
 }
+
+export function randomStr(length = 12) {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Buffer.from(bytes).toString("base64url");
+}

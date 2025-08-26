@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
-import type { ClientRequestEvents, ServerResponseEvents } from "../../shared";
+import { ErrorCodes, type ClientRequestEvents, type ServerResponseEvents } from "../../shared";
 import { Constants } from "../constants.ts";
 import { useLocalStorage } from "@app/hooks";
 import { NameStorage, ProfileStorage, TokenStorage } from "./profile.ts";
@@ -46,29 +46,30 @@ export function SocketProvider({ children }: SocketProviderProps) {
     ws.send(JSON.stringify(message));
   }, []);
 
-  const login = useCallback((playerName: string) => {
-    const token = TokenStorage.get();
-    send({
-      type: "login",
-      payload: {
-        token: token ? token : undefined,
-        displayName: playerName.trim(),
-      },
-    });
-  }, []);
+  const login = useCallback(
+    (name: string) => {
+      send({
+        type: "login",
+        payload: {
+          id: profile.id || undefined,
+          displayName: name.trim(),
+        },
+      });
+    },
+    [profile]
+  );
 
   const tryReconnectionIfPossible = useCallback(() => {
     const displayName = NameStorage.get();
-    const token = TokenStorage.get();
-    if (!displayName || !token) return;
+    if (!profile) return null;
     send({
       type: "login",
       payload: {
-        token,
+        id: profile.id,
         displayName: displayName.trim(),
       },
     });
-  }, []);
+  }, [profile]);
 
   const startPing = () => {
     stopPing();
@@ -94,6 +95,11 @@ export function SocketProvider({ children }: SocketProviderProps) {
           id: message.payload.profile.id,
         });
         setStatus("authenticated");
+        break;
+      case "error":
+        if (message.payload.code === ErrorCodes.authSessionExpiry) {
+          ProfileStorage.remove();
+        }
         break;
       case "pong":
         break; // ignore

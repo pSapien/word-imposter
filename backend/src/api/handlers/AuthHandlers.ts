@@ -1,5 +1,6 @@
 import type { SessionProfile, SessionService, WebSocketManager, AuthService } from "@server/core";
 import { Validators, ErrorCodes, type LoginRequest, type ServerResponseEvents, ApiError } from "@imposter/shared";
+import { randomStr } from "@server/utils";
 
 type Services = {
   session: SessionService;
@@ -29,11 +30,8 @@ export class AuthHandlers {
   public async handleLogin(connectionId: string, payload: LoginRequest["payload"]) {
     try {
       /** handle reconnection */
-      if (payload.token) {
-        const verified = await this.services.auth.verifyToken(payload.token!);
-        if (!verified) throw new ApiError(ErrorCodes.authInvalidToken, "Invalid Token");
-
-        const prevSession = this.services.session.getSession(verified.sessionId);
+      if (payload.id) {
+        const prevSession = this.services.session.getSessionByProfileId(payload.id);
         if (!prevSession) throw new ApiError(ErrorCodes.authSessionExpiry, "Session expired");
 
         this.services.session.resignConnection(prevSession.sessionId, connectionId);
@@ -51,7 +49,13 @@ export class AuthHandlers {
       }
 
       Validators.validatePlayerName(payload.displayName);
-      const session = this.services.session.createGuestSession(connectionId, payload.displayName);
+
+      const newProfile = {
+        displayName: payload.displayName.trim(),
+        id: randomStr(8),
+      };
+
+      const session = this.services.session.createSession(connectionId, newProfile);
       await this.sendLoginSuccess(connectionId, session);
     } catch (error: any) {
       this.wsManager.send(connectionId, {

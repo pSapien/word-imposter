@@ -1,14 +1,8 @@
-export interface GuestProfile {
-  id: string;
-  displayName: string;
-  createdAt: number;
-  lastActiveAt: number;
-}
-
 export interface SessionProfile {
   sessionId: string;
   connectionId: string;
-  profile: GuestProfile;
+  lastActiveAt: number;
+  profile: { id: string; displayName: string };
 }
 
 function randomStr(length = 12) {
@@ -22,20 +16,12 @@ export class SessionService {
   private indexByConnectionId = new Map<string, string>();
   private indexByProfileId = new Map<string, string>();
 
-  createGuestSession(connectionId: string, displayName: string): SessionProfile {
-    if (!displayName?.trim()) throw new Error("Display name is required");
-
-    const profile: GuestProfile = {
-      id: randomStr(8),
-      displayName: displayName.trim(),
-      createdAt: Date.now(),
-      lastActiveAt: Date.now(),
-    };
-
+  createSession(connectionId: string, profile: SessionProfile["profile"]): SessionProfile {
     const session: SessionProfile = {
       sessionId: randomStr(8),
       connectionId,
       profile,
+      lastActiveAt: Date.now(),
     };
 
     this.sessions.set(session.sessionId, session);
@@ -51,7 +37,7 @@ export class SessionService {
 
   updateLastActive(connectionId: string) {
     const session = this.getSessionByConnectionId(connectionId);
-    if (session) session.profile.lastActiveAt = Date.now();
+    if (session) session.lastActiveAt = Date.now();
   }
 
   resignConnection(sessionId: string, newConnectionId: string): SessionProfile | null {
@@ -99,7 +85,7 @@ export class SessionService {
     const now = Date.now();
 
     this.sessions.forEach((session) => {
-      if (now - session.profile.lastActiveAt > maxInActiveMs) {
+      if (now - session.lastActiveAt > maxInActiveMs) {
         console.log(`Cleaning up inactive session for ${session.profile.displayName}`);
         this.removeSession(session.sessionId);
       }
