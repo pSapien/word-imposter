@@ -8,7 +8,7 @@ export const Constants = {
     Role: "$$role$$",
   },
   Endpoint: "https://d81075c69aed.ngrok-free.app",
-  ShowDebugLogs: false,
+  ShowDebugLogs: true,
   ToastShowDuration: 3000,
 
   Connection: {

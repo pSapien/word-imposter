@@ -43,11 +43,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const pingIntervalRef = useRef<number | null>(null);
 
   const send = useCallback((message: ClientRequestEvents) => {
+    console.log("Socket.Send::", message.type);
     ws.send(JSON.stringify(message));
   }, []);
 
   const login = useCallback(
     (name: string) => {
+      console.log(profile ? "Reconnecting" : "Login");
       send({
         type: "login",
         payload: {
@@ -62,6 +64,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const tryReconnectionIfPossible = useCallback(() => {
     const displayName = NameStorage.get();
     if (!profile) return null;
+    console.log("Reconnecting");
     send({
       type: "login",
       payload: {
@@ -72,6 +75,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   }, [profile]);
 
   const startPing = () => {
+    console.log("Start ping");
     stopPing();
     pingIntervalRef.current = window.setInterval(() => {
       send({ type: "ping", payload: {} });
@@ -79,6 +83,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   };
 
   const stopPing = () => {
+    console.log("Stop ping");
     if (pingIntervalRef.current) {
       clearInterval(pingIntervalRef.current);
       pingIntervalRef.current = null;
@@ -89,6 +94,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const handleGlobalMessage = (message: ServerResponseEvents) => {
     switch (message.type) {
       case "login_success":
+        console.log("New Profile Updated");
         TokenStorage.set(message.payload.token);
         setProfile({
           displayName: message.payload.profile.displayName,
@@ -98,6 +104,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
         break;
       case "error":
         if (message.payload.code === ErrorCodes.authSessionExpiry) {
+          console.log("Session Expired");
           ProfileStorage.remove();
         }
         break;
@@ -110,6 +117,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
   useEffect(() => {
     ws.addEventListener("open", () => {
+      console.log("Socket.Open");
       setStatus("connected");
       startPing();
       tryReconnectionIfPossible();
@@ -118,12 +126,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
     });
 
     ws.addEventListener("close", () => {
+      console.log("Socket.Close");
       setStatus("closed");
       stopPing();
       handlersRef.current.forEach((h) => h.onClose?.());
     });
 
     ws.addEventListener("error", (event) => {
+      console.log("Socket.Error");
       console.error("❌ Global socket error:", event);
       setStatus("error");
       handlersRef.current.forEach((h) =>
@@ -134,6 +144,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     ws.addEventListener("message", (event: any) => {
       try {
         const message = JSON.parse(event.data) as ServerResponseEvents;
+        console.log("Socket.message:", message.type);
 
         handleGlobalMessage(message);
 

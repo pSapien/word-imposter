@@ -84,6 +84,7 @@ export class WebSocketManager<M extends Message> {
     Array.from(this.connectionsById.entries()).forEach(([id, connection]) => {
       if (now - connection.lastPing > maxStaleMs) {
         try {
+          console.log(`Cleaning up stale connection for ${id}`);
           connection.socket.close(1001, "Connection timed out due to inactivity");
         } catch (err) {
           console.error(`Error closing stale connection ${id}:`, err);
