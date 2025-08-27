@@ -1,3 +1,5 @@
+import { randomInt } from "crypto";
+
 export function shuffle<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -13,7 +15,7 @@ export function randomSlice<T>(arr: T[], count: number) {
 }
 
 export function randomIdx<T>(arr: T[]): number {
-  return Math.floor(Math.random() * arr.length);
+  return randomInt(0, arr.length);
 }
 
 export function random<T>(arr: T[]): T {

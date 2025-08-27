@@ -5,9 +5,8 @@ import type {
   WordImposterImpostersWinSummary,
   WordImposterCiviliansWinSummary,
 } from "@imposter/shared";
-import { random, randomSlice } from "@server/utils";
 import { getRandomWordPair } from "./wordpairs.js";
-import { computeWinner, getEliminatedPlayerByVotes } from "./logic/index.js";
+import { computeWinner, getEliminatedPlayerByVotes, randomImposters } from "./logic/index.js";
 
 export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   readonly gameId: string;
@@ -32,7 +31,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
   }
 
   startGame(players: GameEnginePlayer[]): boolean {
-    const wordPair = getRandomWordPair(random(this.config.wordCategories));
+    const wordPair = getRandomWordPair(this.config.wordCategories);
 
     this.state.stage = "discussion";
     this.state.round = 1;
@@ -46,7 +45,10 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
         hasSubmittedWord: false,
       };
     });
-    this.state.imposterIds = randomSlice(players, this.config.imposterCount).map((p) => p.id);
+    this.state.imposterIds = randomImposters(
+      this.state.players.map((p) => p.id),
+      this.config.imposterCount
+    );
     this.state.civilianWord = wordPair.civilianWord;
     this.state.imposterWord = wordPair.imposterWord;
 

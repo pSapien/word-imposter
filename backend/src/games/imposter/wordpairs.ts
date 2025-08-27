@@ -1,3 +1,5 @@
+import { randomIdx, shuffle } from "@server/utils";
+
 import abstract from "./words/abstract.js";
 import fantasy from "./words/fantasy.js";
 import food from "./words/food.js";
@@ -48,13 +50,14 @@ export function getWordsList() {
   return WordPairsCategory.slice();
 }
 
-export function getRandomWordPair(category: string): { civilianWord: string; imposterWord: string } {
-  const categoryData = getWordsList().find((cat) => cat.value === category);
-  const categoryList = categoryData?.words ?? legacy;
-
-  const randomPairIndex = Math.floor(Math.random() * categoryList.length);
-  const selectedPair = categoryList[randomPairIndex]!;
-  const randomAssignment = Math.floor(Math.random() * 2);
+export function getRandomWordPair(categories: string[]): { civilianWord: string; imposterWord: string } {
+  const shuffledCategories = shuffle(categories.slice());
+  const categoriesWords = getWordsList()
+    .filter((p) => shuffledCategories.includes(p.value))
+    .map((p) => p.words)
+    .flat();
+  const selectedPair = categoriesWords[randomIdx(categoriesWords)]!;
+  const randomAssignment = randomIdx(selectedPair);
 
   return {
     imposterWord: selectedPair[1 - randomAssignment]!,
