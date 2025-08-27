@@ -46,7 +46,7 @@ export class WordImposterGameEngine implements GameEngine<WordImposterState> {
       };
     });
     this.state.imposterIds = randomImposters(
-      this.state.players.map((p) => p.id),
+      this.state.players.filter((p) => p.role !== "spectator").map((p) => p.id),
       this.config.imposterCount
     );
     this.state.civilianWord = wordPair.civilianWord;

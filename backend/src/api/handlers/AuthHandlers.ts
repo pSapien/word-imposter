@@ -27,35 +27,31 @@ export class AuthHandlers {
     });
   }
 
+  private handleReconnection(connectionId: string, profileId: string, displayName: string) {
+    const prevSession = this.services.session.getSessionByProfileId(profileId);
+    console.log("Handling Reconnection for", displayName);
+
+    if (prevSession) {
+      this.services.session.resignConnection(prevSession.sessionId, connectionId);
+      this.services.session.updateProfile(prevSession.profile.id, displayName);
+      return prevSession;
+    }
+
+    return this.services.session.createSession(connectionId, {
+      id: profileId,
+      displayName,
+    });
+  }
+
   public async handleLogin(connectionId: string, payload: LoginRequest["payload"]) {
     try {
-      /** handle reconnection */
-      if (payload.id) {
-        const prevSession = this.services.session.getSessionByProfileId(payload.id);
-        if (!prevSession) throw new ApiError(ErrorCodes.authSessionExpiry, "Session expired");
+      const { id, displayName } = payload;
+      Validators.validatePlayerName(displayName);
 
-        this.services.session.resignConnection(prevSession.sessionId, connectionId);
+      const session = id
+        ? this.handleReconnection(connectionId, id, displayName.trim())
+        : this.services.session.createSession(connectionId, { displayName: displayName.trim(), id: randomStr(8) });
 
-        /** if there is new displayName, we try to update it */
-        if (payload.displayName !== prevSession.profile.displayName) {
-          try {
-            Validators.validatePlayerName(payload.displayName);
-            this.services.session.updateProfile(prevSession.profile.id, payload.displayName);
-          } catch (error: any) {}
-        }
-
-        await this.sendLoginSuccess(connectionId, prevSession);
-        return;
-      }
-
-      Validators.validatePlayerName(payload.displayName);
-
-      const newProfile = {
-        displayName: payload.displayName.trim(),
-        id: randomStr(8),
-      };
-
-      const session = this.services.session.createSession(connectionId, newProfile);
       await this.sendLoginSuccess(connectionId, session);
     } catch (error: any) {
       this.wsManager.send(connectionId, {

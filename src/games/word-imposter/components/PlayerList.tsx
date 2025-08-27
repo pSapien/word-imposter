@@ -57,15 +57,15 @@ export function PlayerList(props: Props) {
                 isCurrentUser && "bg-blue-500/10 border border-blue-300/50"
               )}
             >
-              <div className="flex items-center space-x-4 min-w-0">
-                {/* <div
+              <div className="flex items-center space-x-2 min-w-0">
+                <div
                   className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg",
+                    "w-8 h-8 rounded-full flex items-center justify-center text-white",
                     isEliminated ? "bg-gray-600" : "bg-gradient-to-r from-blue-600 to-purple-700"
                   )}
                 >
                   {player.displayName.charAt(0).toUpperCase()}
-                </div> */}
+                </div>
 
                 {/* placeholder for the avatar frame */}
                 <div className="h-12" />

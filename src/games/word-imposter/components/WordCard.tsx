@@ -70,10 +70,7 @@ export function WordCard({ word, className }: WordCardProps) {
   return (
     <Card
       variant="glass"
-      className={cn(
-        "p-4 text-center cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 relative",
-        className
-      )}
+      className={cn("p-4 text-center cursor-pointer transition-all duration-300 relative", className)}
       onClick={handleToggleVisibility}
     >
       <button
@@ -84,7 +81,7 @@ export function WordCard({ word, className }: WordCardProps) {
         disabled={isLoading}
         className={cn(
           "absolute top-3 right-3 p-2 rounded-full transition-all duration-200",
-          "hover:bg-black/10 active:bg-black/20 hover:scale-110 active:scale-95",
+          "hover:bg-black/10 active:bg-black/20 active:scale-95",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           isVisible ? "opacity-60 hover:opacity-100" : "opacity-0 group-hover:opacity-100 hover:opacity-100"
         )}

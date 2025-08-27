@@ -50,10 +50,6 @@ export function WordImposterGameUI() {
       toast.error(error.message);
       if (error.code === ErrorCodes.authSessionExpiry) navigate("/");
     },
-
-    onError: (error) => {
-      toast.error(error.message);
-    },
   });
 
   useEffect(() => {
@@ -204,7 +200,7 @@ export function WordImposterGameUI() {
         {gameState && (gameState.stage === "discussion" || gameState.stage === "voting") && (
           <>
             <PlayerList
-              players={sortPlayers(gameState.players).map((p) => ({
+              players={sortPlayers(gameState.players.filter((r) => r.role !== "spectator")).map((p) => ({
                 id: p.id,
                 displayName: p.displayName,
                 isCurrentUser: p.id === currentUserId,
