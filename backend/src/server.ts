@@ -4,6 +4,7 @@ import { ErrorCodes, type ServerResponseEvents } from "@imposter/shared";
 import { AuthHandlers } from "./api/handlers/AuthHandlers.js";
 import { RoomHandlers } from "./api/handlers/RoomHandlers.js";
 import { MessageRouter } from "./api/routes/MessageRouter.js";
+import { PingHandlers } from "./api/handlers/PingHandler.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-key";
 
@@ -22,6 +23,7 @@ const middlewares = {
 const routeHandlers = {
   auth: new AuthHandlers(wsManager, services),
   room: new RoomHandlers(wsManager, services),
+  ping: new PingHandlers(wsManager),
 };
 
 const messageRouter = new MessageRouter(middlewares, routeHandlers);
@@ -82,6 +84,7 @@ const server = Bun.serve({
   },
 
   websocket: {
+    maxPayloadLength: 1024 * 1024,
     open(ws) {
       const connectionId = wsManager.addConnection(ws);
       console.log(`Connection opened: ${connectionId}:${ws.remoteAddress}`);

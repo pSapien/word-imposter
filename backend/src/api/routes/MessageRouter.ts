@@ -1,5 +1,5 @@
-import { AuthHandlers, RoomHandlers } from "../handlers";
-import { AuthMiddleware } from "../../core";
+import { AuthHandlers, RoomHandlers, PingHandlers } from "../handlers";
+import { AuthMiddleware } from "@server/core";
 import type { ClientRequestEvents } from "@imposter/shared";
 
 type ClientEvents = ClientRequestEvents["type"];
@@ -7,6 +7,7 @@ type ClientEvents = ClientRequestEvents["type"];
 type Handlers = {
   auth: AuthHandlers;
   room: RoomHandlers;
+  ping: PingHandlers;
 };
 
 type Middlewares = {
@@ -22,7 +23,7 @@ export class MessageRouter {
 
   private setupRoutes() {
     this.routes.set("login", this.handlers.auth.handleLogin.bind(this.handlers.auth));
-    this.routes.set("ping", this.handlePing.bind(this));
+    this.routes.set("ping", this.handlers.ping.handlePing.bind(this.handlers.ping));
 
     this.routes.set(
       "create_room",
@@ -75,8 +76,4 @@ export class MessageRouter {
       // Send internal error response
     }
   }
-
-  private handlePing = (connectionId: string, payload: any) => {
-    // Update connection ping time and respond
-  };
 }

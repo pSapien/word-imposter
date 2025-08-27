@@ -147,17 +147,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
       }
     });
 
-    /** called whenever the browser tab's is switched */
     function handleVisibilityChange() {
-      /** if the tab is visible and the socket is closing or closed, we reconnect again! */
-      if (document.hidden) {
-        stopPing();
-      } else {
-        if (ws.readyState === WebSocket.OPEN) {
-          startPing();
-        } else if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) {
-          ws.reconnect();
-        }
+      if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) {
+        console.log("Socket.Reconnect");
+        ws.reconnect();
       }
     }
 
