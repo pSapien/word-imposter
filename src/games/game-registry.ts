@@ -31,6 +31,16 @@ export const AVAILABLE_GAMES: GameInfo[] = [
     maxPlayers: 16,
     estimatedTime: "15-20 min",
   },
+  {
+    id: "imposter-blitz",
+    name: "Imposter Blitz",
+    description: "A fast-paced version of Word Imposter with a twist",
+    icon: "⚡️",
+    color: "from-yellow-400 to-orange-500",
+    minPlayers: 3,
+    maxPlayers: 20,
+    estimatedTime: "5-10 min",
+  },
 ];
 
 export function getGameInfo(gameId: string): GameInfo | null {

@@ -12,7 +12,7 @@ import type {
 } from "@imposter/shared";
 import { ErrorCodes, Validators, ApiError } from "@imposter/shared";
 import type { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "@server/core";
-import { WordImposterGameEngine } from "@server/games";
+import { WordImposterGameEngine, ImposterBlitzGameEngine } from "@server/games";
 
 type Services = {
   session: SessionService;
@@ -131,10 +131,18 @@ export class RoomHandlers {
 
       if (room.hostId && room.hostId !== session.profile.id) throw new Error("Only host can start games");
 
-      let game: WordImposterGameEngine;
+      let game: GameEngine<any>;
       switch (payload.gameType) {
         case "imposter":
           game = new WordImposterGameEngine({
+            minPlayers: 3,
+            maxPlayers: 20,
+            imposterCount: payload.settings?.imposterCount || 1,
+            wordCategories: payload.settings?.wordCategories || ["legacy"],
+          });
+          break;
+        case "imposter-blitz":
+          game = new ImposterBlitzGameEngine({
             minPlayers: 3,
             maxPlayers: 20,
             imposterCount: payload.settings?.imposterCount || 1,

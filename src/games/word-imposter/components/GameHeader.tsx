@@ -8,6 +8,7 @@ type Props = {
   onBack: () => void;
   roomName: string;
   isCurrentUserHost: boolean;
+  title: string;
 };
 
 const statusMap: Record<SocketStatus, { text: string; bg: string; textColor: string }> = {
@@ -37,7 +38,7 @@ export function GameHeader(props: Props) {
         </Button>
 
         <div className="flex-1 text-center">
-          <h1 className="text-xl font-bold text-white">🎭 Word Imposter</h1>
+          <h1 className="text-xl font-bold text-white">{props.title}</h1>
           <div className="text-sm text-white/80">Room: {roomName}</div>
           <div
             className={cn(

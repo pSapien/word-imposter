@@ -159,7 +159,12 @@ export function WordImposterGameUI() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-500 relative overflow-hidden flex flex-col">
       <BackgroundEffects />
-      <GameHeader isCurrentUserHost={isHost} onBack={handleLeaveRoom} roomName={room?.roomName || ""} />
+      <GameHeader
+        isCurrentUserHost={isHost}
+        onBack={handleLeaveRoom}
+        roomName={room?.roomName || ""}
+        title="🎭 Word Imposter"
+      />
 
       <main className="flex-1 overflow-y-auto relative z-10 max-w-4xl mx-auto p-4 space-y-8 w-full">
         <WordCard word={gameState?.civilianWord || ""} />

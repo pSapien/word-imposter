@@ -6,6 +6,8 @@ import { CodeWordsSetupPage } from "./games/codewords/pages/CodeWordsSetupPage";
 import { WordImposterRoom, WordImposterGameUI } from "./games/word-imposter";
 import { Constants } from "./constants.ts";
 import { FloatingConsoleLogs, ModalProvider } from "@app/components";
+import ImposterBlitzRoom from "./games/imposter-blitz/pages/ImposterBlitzRoom.tsx";
+import ImposterBlitzGameUI from "./games/imposter-blitz/pages/ImposterBlitzGameUI.tsx";
 // Import future game rooms here
 // import { CodeWordsRoom } from "./games/codewords/pages/CodeWordsRoom";
 
@@ -20,6 +22,9 @@ export default function App() {
 
             <Route path="/game/imposter/room" element={<WordImposterRoom />} />
             <Route path="/game/imposter/room/:roomName" element={<WordImposterGameUI />} />
+
+            <Route path="/game/imposter-blitz/room" element={<ImposterBlitzRoom />} />
+            <Route path="/game/imposter-blitz/room/:roomName" element={<ImposterBlitzGameUI />} />
 
             <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
           </Routes>
