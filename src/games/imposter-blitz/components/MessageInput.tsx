@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { cn } from "@app/utils";
 import { Button } from "@app/components";
+import toast from "react-hot-toast";
 
 type Props = {
   onSendMessage: (message: string) => void;
@@ -14,10 +15,18 @@ export function MessageInput({ onSendMessage, placeholder, disabled, isHighlight
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
-      setMessage("");
+    const word = message.trim();
+
+    if (word.length === 0) return toast.error("Should be a word");
+    if (word.length >= 30) return toast.error("Should be less than 20 chars");
+
+    const validWordRegex = /^[A-Za-z]+(?:[-'][A-Za-z]+)*(?: [A-Za-z]+(?:[-'][A-Za-z]+)*)*$/;
+    if (!validWordRegex.test(word)) {
+      return toast.error("Only English letters, spaces, hyphens, and apostrophes are allowed");
     }
+
+    onSendMessage(word);
+    setMessage("");
   };
 
   return (

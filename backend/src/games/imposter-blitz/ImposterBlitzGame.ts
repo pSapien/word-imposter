@@ -1,9 +1,11 @@
 import type { GameEngine, GameAction, GameEnginePlayer } from "@server/core";
-import type {
-  ImposterBlitzGameState,
-  WordImposterCiviliansWinSummary,
-  WordImposterImpostersWinSummary,
-  ImposterBlizGameConfig,
+import {
+  type ImposterBlitzGameState,
+  type WordImposterCiviliansWinSummary,
+  type WordImposterImpostersWinSummary,
+  type ImposterBlizGameConfig,
+  ImposterBlitzVoteEvent,
+  ImposterBlitzSubmissionEvent,
 } from "@imposter/shared";
 import { getRandomWordPair } from "../imposter/wordpairs.js";
 import { computeWinner, getEliminatedPlayerByVotes, randomImposters } from "../imposter/logic/index.js";
@@ -28,6 +30,8 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
       turnOrder: [],
       votes: {},
       turn: "",
+      events: [],
+      summary: undefined,
     };
   }
 
@@ -64,6 +68,13 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
     if (!player) throw new Error("Player not found");
 
     if (action.type === "submit_word") {
+      const repeated = this.state.events.some(
+        (evt) =>
+          evt instanceof ImposterBlitzSubmissionEvent &&
+          evt.content.trim().toLowerCase() === action.payload.word.toLowerCase()
+      );
+
+      if (repeated) throw new Error("This word has already been submitted.");
       if (this.state.stage !== "discussion") throw new Error("Not the time to submit words.");
       if (player.role === "spectator") throw new Error("Spectator are not allowed to submit");
       if (player.status === "eliminated") throw new Error("Not allowed to submit");
@@ -120,8 +131,7 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
     const player = this.state.players.find((p) => p.id === playerId);
     if (!player) throw new Error("Player not found");
 
-    player.submittedWords.push(action.payload.word);
-
+    this.state.events.push(new ImposterBlitzSubmissionEvent(player.id, action.payload.word));
     this.state.turnOrder.shift();
     const nextTurn = this.state.turnOrder[0]!;
 
@@ -207,6 +217,10 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
     const alivePlayerIds = this.state.players
       .filter((p) => p.role !== "spectator" && p.status === "alive")
       .map((p) => p.id);
+
+    Object.keys(this.state.votes).forEach((voterId) => {
+      this.state.events.push(new ImposterBlitzVoteEvent(voterId, this.state.votes[voterId]!));
+    });
 
     this.state.stage = "discussion";
     this.state.summary = undefined;

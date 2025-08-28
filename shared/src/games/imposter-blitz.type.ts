@@ -2,13 +2,24 @@ import type { WordImposterRoundSummary, WordImposterConfig } from "./imposter.ty
 
 export interface ImposterBlizGameConfig extends WordImposterConfig {}
 
+export class ImposterBlitzSubmissionEvent {
+  type = "submission";
+  constructor(public playerId: string, public content: string) {}
+}
+
+export class ImposterBlitzVoteEvent {
+  type = "vote";
+  constructor(public voterId: string, public voteeId: string) {}
+}
+
+export type ImposterBlitzEvent = ImposterBlitzSubmissionEvent | ImposterBlitzVoteEvent;
+
 export interface ImposterBlitzPlayer {
   id: string;
   displayName: string;
   role: "host" | "player" | "spectator" | string;
   status: "alive" | "eliminated";
   hasVoted: boolean;
-  submittedWords: Array<string>;
 }
 
 export interface ImposterBlitzGameState {
@@ -21,5 +32,6 @@ export interface ImposterBlitzGameState {
   votes: Record<string, string>;
   turnOrder: string[];
   turn: string;
+  events: ImposterBlitzEvent[];
   summary?: WordImposterRoundSummary;
 }

@@ -1,29 +1,57 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { ErrorCodes, type Room, type ImposterBlitzGameState } from "../../../../shared";
+import {
+  ErrorCodes,
+  type Room,
+  type ImposterBlitzGameState,
+  ImposterBlitzSubmissionEvent,
+  ImposterBlitzVoteEvent,
+} from "../../../../shared";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
 import { useLocalStorage } from "@app/hooks";
-import { ChatDisplay, FloatingHostControls, GameSummary, MessageInput, PlayerSelectionAnimation } from "../components";
+import {
+  ChatDisplay,
+  FloatingHostControls,
+  GameSummary,
+  MessageInput,
+  PlayerSelectionAnimation,
+  PlayerWord,
+} from "../components";
+
 import { GameHeader } from "../../word-imposter/components/GameHeader.tsx";
-import { WordCard } from "../../word-imposter/components/WordCard.tsx";
 import { VotingProgress } from "../../word-imposter/components/VotingProgress.tsx";
 
 function gameStateToMessages(gameState: ImposterBlitzGameState, currentUserId: string) {
-  const messages = [];
-
-  for (const player of gameState.players) {
-    for (const word of player.submittedWords) {
-      messages.push({
-        author: player.displayName,
-        content: word,
-        isSelf: player.id === currentUserId,
-      });
-    }
-  }
-
-  return messages;
+  return gameState?.events
+    .map((ev) => {
+      if (ev.type === "submission") {
+        const subEvent = ev as ImposterBlitzSubmissionEvent;
+        const player = gameState.players.find((p) => p.id === subEvent.playerId);
+        return {
+          author: player?.displayName || "",
+          content: subEvent.content,
+          isSelf: subEvent.playerId === currentUserId,
+          type: "chat" as const,
+        };
+      } else if (ev.type === "vote") {
+        const voteEvent = ev as ImposterBlitzVoteEvent;
+        const voter = gameState.players.find((p) => p.id === voteEvent.voterId);
+        const votee = gameState.players.find((p) => p.id === voteEvent.voteeId);
+        const content =
+          voteEvent.voteeId === ""
+            ? `${voter?.displayName} skipped the vote`
+            : `${voter?.displayName} voted for ${votee?.displayName}`;
+        return {
+          author: "System",
+          content,
+          isSelf: false,
+          type: "vote" as const,
+        };
+      }
+    })
+    .filter(Boolean);
 }
 
 export default function ImposterBlitzGameUI() {
@@ -41,6 +69,11 @@ export default function ImposterBlitzGameUI() {
   const [systemMessages, setSystemMessages] = useState<{ author: string; content: string; isSelf: boolean }[]>([]);
 
   const me = gameState?.players.find((p) => p.id === currentUserId);
+  const scrollEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [gameState]);
 
   useSocketHandler({
     room_joined: (payload) => {
@@ -49,6 +82,7 @@ export default function ImposterBlitzGameUI() {
           author: "System",
           content: `${mem.displayName} has joined the room.`,
           isSelf: currentUserId === mem.id,
+          type: "join",
         };
       });
 
@@ -195,71 +229,79 @@ export default function ImposterBlitzGameUI() {
   const isMyTurn = gameState?.turn === me?.id;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      {showAnimation && gameState && (
-        <PlayerSelectionAnimation
-          players={gameState.players
-            .filter((p) => p.role !== "spectator" && p.status === "alive")
-            .filter((p) => gameState?.turnOrder.includes(p.id))}
-          selectedPlayerId={gameState?.turn}
-          onAnimationComplete={() => setShowAnimation(false)}
-        />
-      )}
-      <GameHeader
-        title="⚡️ Imposter Blitz"
-        isCurrentUserHost={room?.hostId === currentUserId}
-        roomName={room?.roomName || ""}
-        onBack={handleLeaveRoom}
-      />
-      {Boolean(currentUserId === room?.hostId) && (
-        <FloatingHostControls
-          gameState={gameState}
-          onEndVoting={handleEndVoting}
-          onNextRound={handleNextRound}
-          onStartGame={handleStartGame}
-        />
-      )}
-      {me && gameState && (
-        <section className="w-full flex justify-center pt-4">
-          <div className="w-4/5">
-            <WordCard word={gameState.civilianWord} />
-          </div>
-        </section>
-      )}
-      {gameState?.stage === "voting" && (
-        <section className="w-full flex justify-center pt-4">
-          <div className="w-4/5">
-            <VotingProgress
-              shouldVote={totalActivePlayers.some((p) => p.id === currentUserId)}
-              totalActivePlayers={totalActivePlayers.length}
-              voteCount={voteCount}
-              votedFor={getVotedFor(gameState, currentUserId)}
-            />
-          </div>
-        </section>
-      )}
-      <main className="flex-1 p-4 overflow-auto flex flex-col">
-        <ChatDisplay
-          messages={messages}
-          stage={gameState?.stage || "waiting"}
-          players={gameState?.players || []}
-          currentUserId={currentUserId}
-          onVote={handleVote}
-          onSkipVote={handleSkipVote}
-        />
-        {gameState && gameState.stage === "results" && gameState.summary && (
-          <GameSummary gameState={gameState} onPlayAgain={handleStartGame} />
-        )}
-        {gameState && gameState.stage === "discussion" && (
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            placeholder={getPlaceholder()}
-            disabled={showCountdown || !isMyTurn || me?.status === "eliminated"}
-            isHighlighted={!showAnimation && isMyTurn}
+    <>
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col">
+        {showAnimation && gameState && (
+          <PlayerSelectionAnimation
+            players={gameState.players
+              .filter((p) => p.role !== "spectator" && p.status === "alive")
+              .filter((p) => gameState?.turnOrder.includes(p.id))}
+            selectedPlayerId={gameState?.turn}
+            onAnimationComplete={() => setShowAnimation(false)}
           />
         )}
-      </main>
-    </div>
+        <GameHeader
+          title="⚡️ Imposter Blitz"
+          isCurrentUserHost={room?.hostId === currentUserId}
+          roomName={room?.roomName || ""}
+          onBack={handleLeaveRoom}
+        />
+
+        <div className="flex-shrink-0 flex flex-col gap-4 sticky top-0 z-10 bg-gray-900 pt-4">
+          {Boolean(currentUserId === room?.hostId) && (
+            <FloatingHostControls
+              onEndVoting={handleEndVoting}
+              onNextRound={handleNextRound}
+              onStartGame={handleStartGame}
+            />
+          )}
+          {me && gameState && (
+            <section className="w-full flex justify-center">
+              <div className="w-4/5">
+                <PlayerWord word={gameState.civilianWord} />
+              </div>
+            </section>
+          )}
+          {gameState?.stage === "voting" && (
+            <section className="w-full flex justify-center pt-4">
+              <div className="w-4/5">
+                <VotingProgress
+                  shouldVote={totalActivePlayers.some((p) => p.id === currentUserId)}
+                  totalActivePlayers={totalActivePlayers.length}
+                  voteCount={voteCount}
+                  votedFor={getVotedFor(gameState, currentUserId)}
+                />
+              </div>
+            </section>
+          )}
+        </div>
+
+        <main className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-2">
+          <ChatDisplay
+            messages={messages}
+            stage={gameState?.stage || "waiting"}
+            players={gameState?.players || []}
+            currentUserId={currentUserId}
+            onVote={handleVote}
+            onSkipVote={handleSkipVote}
+          />
+          {gameState && gameState.stage === "results" && gameState.summary && <GameSummary gameState={gameState} />}
+          {/* Empty div to scroll into view */}
+          <div ref={scrollEndRef} />
+        </main>
+
+        {gameState && gameState.stage === "discussion" && (
+          <div className="flex-shrink-0 sticky bottom-0 z-10 bg-gray-900 p-4">
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              placeholder={getPlaceholder()}
+              disabled={showCountdown || !isMyTurn || me?.status === "eliminated"}
+              isHighlighted={!Boolean(countdown) && isMyTurn}
+            />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

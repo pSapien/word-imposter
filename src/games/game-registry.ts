@@ -36,7 +36,7 @@ export const AVAILABLE_GAMES: GameInfo[] = [
     name: "Imposter Blitz",
     description: "A fast-paced version of Word Imposter with a twist",
     icon: "⚡️",
-    color: "from-yellow-400 to-orange-500",
+    color: "from-red-500 to-rose-600",
     minPlayers: 3,
     maxPlayers: 20,
     estimatedTime: "5-10 min",

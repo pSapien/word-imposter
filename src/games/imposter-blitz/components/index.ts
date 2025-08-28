@@ -4,3 +4,4 @@ export * from "./MessageInput";
 export * from "./PlayerSelectionAnimation";
 export * from "./VotingProgress";
 export * from "./FloatingHostControl";
+export * from "./PlayerWord";

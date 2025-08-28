@@ -4,16 +4,15 @@ import type {
   WordImposterCiviliansWinSummary,
   WordImposterImpostersWinSummary,
 } from "../../../../shared";
-import { Button, Card } from "@app/components";
+import { Card } from "@app/components";
 import { cn } from "@app/utils";
 import { Target, Trophy } from "lucide-react";
 
 type Props = {
   gameState: ImposterBlitzGameState;
-  onPlayAgain: () => void;
 };
 
-export function GameSummary({ gameState, onPlayAgain }: Props) {
+export function GameSummary({ gameState }: Props) {
   const { players, votes, summary, round } = gameState;
 
   const voteCount: Record<string, number> = {};
@@ -197,9 +196,6 @@ export function GameSummary({ gameState, onPlayAgain }: Props) {
           </div>
         </div>
       </div>
-      <Button onClick={onPlayAgain} className="mt-4 w-full">
-        Play Again
-      </Button>
     </Card>
   );
 }
