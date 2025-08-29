@@ -12,7 +12,21 @@ export class ImposterBlitzVoteEvent {
   constructor(public voterId: string, public voteeId: string) {}
 }
 
-export type ImposterBlitzEvent = ImposterBlitzSubmissionEvent | ImposterBlitzVoteEvent;
+export class ImposterBlizRoundEndEvent {
+  type: WordImposterRoundSummary["type"];
+  eliminatedPlayerId: string;
+
+  constructor(summary: WordImposterRoundSummary) {
+    this.type = summary.type;
+    this.eliminatedPlayerId = "";
+
+    if (summary.type === "civilian-found" || summary.type === "imposter-found") {
+      this.eliminatedPlayerId = summary.eliminatedPlayerId;
+    }
+  }
+}
+
+export type ImposterBlitzEvent = ImposterBlitzSubmissionEvent | ImposterBlitzVoteEvent | ImposterBlizRoundEndEvent;
 
 export interface ImposterBlitzPlayer {
   id: string;

@@ -6,6 +6,7 @@ import {
   type ImposterBlizGameConfig,
   ImposterBlitzVoteEvent,
   ImposterBlitzSubmissionEvent,
+  ImposterBlizRoundEndEvent,
 } from "@imposter/shared";
 import { getRandomWordPair } from "../imposter/wordpairs.js";
 import { computeWinner, getEliminatedPlayerByVotes, randomImposters } from "../imposter/logic/index.js";
@@ -78,6 +79,7 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
       if (this.state.stage !== "discussion") throw new Error("Not the time to submit words.");
       if (player.role === "spectator") throw new Error("Spectator are not allowed to submit");
       if (player.status === "eliminated") throw new Error("Not allowed to submit");
+      if (this.state.turn !== playerId) throw new Error("Not your turn to submit word");
     }
 
     if (action.type === "cast_vote") {
@@ -148,7 +150,8 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
     this.state.votes[playerId] = action.payload?.voteeId || "";
     player.hasVoted = true;
 
-    if (this.state.players.every((p) => p.hasVoted)) this.handleEndVoting();
+    /** handle end voting automatically when everyone has voted */
+    if (this.state.players.every((p) => p.status === "alive" && p.hasVoted)) this.handleEndVoting();
   }
 
   private handleEndVoting() {
@@ -223,6 +226,7 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
       this.state.events.push(new ImposterBlitzVoteEvent(voterId, this.state.votes[voterId]!));
     });
 
+    this.state.events.push(new ImposterBlizRoundEndEvent(this.state.summary!));
     this.state.stage = "discussion";
     this.state.summary = undefined;
     this.state.round += 1;
