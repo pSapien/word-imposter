@@ -10,10 +10,16 @@ import {
 import { useSocket, useSocketHandler } from "@app/socket";
 import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
 import { useLocalStorage } from "@app/hooks";
-import { ChatDisplay, FloatingHostControls, GameSummary, MessageInput, PlayerWord } from "../components";
+import {
+  ChatDisplay,
+  FloatingHostControls,
+  GameSummary,
+  MessageInput,
+  PlayerWord,
+  VotingProgress,
+} from "../components";
 
 import { GameHeader } from "../../word-imposter/components/GameHeader.tsx";
-import { VotingProgress } from "../../word-imposter/components/VotingProgress.tsx";
 import notification from "./assets/notification.mp3";
 
 export default function ImposterBlitzGameUI() {
@@ -207,6 +213,7 @@ export default function ImposterBlitzGameUI() {
             currentUserId={currentUserId}
             onVote={handleVote}
             onSkipVote={handleSkipVote}
+            votedForPlayerId={getVotedForPlayerId(gameState, currentUserId)}
           />
           {gameState && gameState.stage === "results" && gameState.summary && <GameSummary gameState={gameState} />}
           {/* Empty div to scroll into view */}
@@ -249,7 +256,7 @@ function transformMessages(gameState: ImposterBlitzGameState | null, room: Room 
         const player = gameState.players.find((p) => p.id === subEvent.playerId);
         return {
           author: player?.displayName || "",
-          content: `💬 ${subEvent.content}`,
+          content: subEvent.content,
           isSelf: subEvent.playerId === currentUserId,
           type: "chat" as const,
         };
@@ -260,7 +267,7 @@ function transformMessages(gameState: ImposterBlitzGameState | null, room: Room 
 
         const content =
           voteEvent.voteeId === ""
-            ? `${voter?.displayName} skipped their vote...`
+            ? `${voter?.displayName} skipped`
             : `${voter?.displayName} voted for ${votee?.displayName}!`;
 
         return {
@@ -274,9 +281,11 @@ function transformMessages(gameState: ImposterBlitzGameState | null, room: Room 
     })
     .filter((p) => p !== null);
 
-  const playerTurns = gameState.turnOrder.map((turnOrder) => {
-    return gameState.players.find((p) => p.id === turnOrder)!;
-  });
+  const playerTurns = gameState.turnOrder
+    .map((turnOrder) => gameState.players.find((p) => p.id === turnOrder))
+    .filter((p) => p !== undefined);
+
+  if (!playerTurns.length) return [...joinEvents, ...gameEvents];
 
   const turnEvents = {
     author: "System",
@@ -298,6 +307,19 @@ function getVotedFor(state: ImposterBlitzGameState, playerId: string) {
   if (!votedForPlayer) return null;
 
   return votedForPlayer.displayName;
+}
+
+function getVotedForPlayerId(state: ImposterBlitzGameState | null, playerId: string): string | null {
+  if (!state) return null;
+  if (!(playerId in state.votes)) return null;
+
+  const votedForPlayerId = state.votes[playerId];
+  if (votedForPlayerId === "") return "";
+
+  const votedForPlayer = state.players.find((p) => p.id === votedForPlayerId);
+  if (!votedForPlayer) return null;
+
+  return votedForPlayer.id;
 }
 
 function getTotalActivePlayers(state: ImposterBlitzGameState) {

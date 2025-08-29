@@ -13,11 +13,12 @@ type Props = {
   stage: ImposterBlitzGameState["stage"];
   players: ImposterBlitzPlayer[];
   currentUserId: string;
+  votedForPlayerId: string | null;
   onVote: (playerId: string) => void;
   onSkipVote: () => void;
 };
 
-export function ChatDisplay({ messages, stage, players, currentUserId, onVote, onSkipVote }: Props) {
+export function ChatDisplay({ messages, stage, players, currentUserId, onVote, onSkipVote, votedForPlayerId }: Props) {
   const me = players.find((p) => p.id === currentUserId);
 
   return (
@@ -34,7 +35,8 @@ export function ChatDisplay({ messages, stage, players, currentUserId, onVote, o
 
           const player = players.find((p) => p.displayName === msg.author);
           const canVoteFor =
-            stage === "voting" && player && player.status !== "eliminated" && player.id !== currentUserId && me;
+            stage === "voting" && player && player.status === "alive" && player.id !== currentUserId && me;
+          console.log("what just happened", stage, canVoteFor);
 
           const canSkip = stage === "voting" && msg.isSelf && me;
 
@@ -52,18 +54,18 @@ export function ChatDisplay({ messages, stage, players, currentUserId, onVote, o
                 }`}
               >
                 <p className="font-bold">{msg.author}</p>
-                <p>{msg.content}</p>
+                <p className={msg.isSelf ? "text-right" : "text-left"}>{msg.content}</p>
               </button>
 
               {canVoteFor && (
-                <button className="h-8 w-8 text-green-400 hover:text-green-500" onClick={() => onVote(player.id)}>
-                  <ThumbsDown className="h-5 w-5" />
+                <button className="h-8 w-8" onClick={() => onVote(player.id)}>
+                  <ThumbsDown className="h-5 w-5" color={player?.id === votedForPlayerId ? "red" : "green"} />
                 </button>
               )}
 
               {canSkip && (
-                <button className="h-8 w-8 text-yellow-400 hover:text-yellow-500" onClick={onSkipVote}>
-                  <SkipForward className="h-5 w-5" />
+                <button className="h-8 w-8" onClick={onSkipVote}>
+                  <SkipForward className="h-5 w-5" color={votedForPlayerId === "" ? "red" : "yellow"} />
                 </button>
               )}
             </div>
