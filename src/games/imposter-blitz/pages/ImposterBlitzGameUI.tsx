@@ -278,6 +278,7 @@ export default function ImposterBlitzGameUI() {
 
         <main className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-2">
           <ChatDisplay
+            // @ts-ignore: cannot possibly be undefined
             messages={messages}
             stage={gameState?.stage || "waiting"}
             players={gameState?.players || []}

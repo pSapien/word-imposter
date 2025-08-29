@@ -1,10 +1,15 @@
 import type { GameConfig } from "../types";
-import ImposterBlitzRoom from "./pages/ImposterBlitzRoom";
-import ImposterBlitzGameUI from "./pages/ImposterBlitzGameUI";
 
 export const ImposterBlitzConfig: GameConfig = {
   id: "imposter-blitz",
   name: "Imposter Blitz",
-  roomComponent: ImposterBlitzRoom,
-  gameComponent: ImposterBlitzGameUI,
+  description: "A fast-paced version of Word Imposter with a twist",
+  icon: "⚡️",
+  minPlayers: 3,
+  maxPlayers: 20,
+  displayName: "Imposter Blitz",
+  defaultSettings: {
+    imposterCount: 1,
+    wordCategories: ["general"],
+  },
 };
