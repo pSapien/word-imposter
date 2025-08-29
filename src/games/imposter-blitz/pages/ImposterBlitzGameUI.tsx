@@ -6,7 +6,7 @@ import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profi
 import { useLocalStorage } from "@app/hooks";
 import {
   ChatDisplay,
-  FloatingHostControls,
+  AdminControlIcon,
   GameSummary,
   MessageInput,
   PlayerWord,
@@ -141,6 +141,15 @@ export default function ImposterBlitzGameUI() {
     });
   };
 
+  const handleKickPlayer = (playerId: string) => {
+    if (!room) return;
+
+    send({
+      type: "kick_room_member",
+      payload: { roomId: room.roomId, memberId: playerId },
+    });
+  };
+
   function getPlaceholder() {
     const random = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
@@ -162,6 +171,8 @@ export default function ImposterBlitzGameUI() {
   const messages = transformStateToMessage(gameState, room, currentUserId);
   const totalActivePlayers = gameState ? getTotalActivePlayers(gameState) : [];
   const voteCount = Number(gameState?.players.filter((player) => player.hasVoted).length);
+  const isHost = room?.hostId === currentUserId;
+  const players = gameState?.players || room?.members || [];
 
   return (
     <>
@@ -173,13 +184,19 @@ export default function ImposterBlitzGameUI() {
           onBack={handleLeaveRoom}
         />
 
-        <div className="flex-shrink-0 flex flex-col gap-4 sticky top-0 z-10 bg-gray-900 pt-4">
-          {Boolean(currentUserId === room?.hostId) && (
-            <FloatingHostControls
-              onEndVoting={handleEndVoting}
-              onNextRound={handleNextRound}
-              onStartGame={handleStartGame}
-            />
+        <div className="flex-shrink-0 flex flex-col gap-4 sticky top-0 z-10 bg-gray-900 pt-4 px-4">
+          {isHost && (
+            <span className="absolute right-8">
+              <AdminControlIcon
+                stage={gameState?.stage || "waiting"}
+                players={players}
+                currentUserId={currentUserId}
+                onKickPlayer={handleKickPlayer}
+                onStartGame={handleStartGame}
+                onNextRound={handleNextRound}
+                onEndVoting={handleEndVoting}
+              />
+            </span>
           )}
           {me && gameState && (
             <section className="w-full flex justify-center">
@@ -211,6 +228,8 @@ export default function ImposterBlitzGameUI() {
             onVote={handleVote}
             onSkipVote={handleSkipVote}
             votedForPlayerId={getVotedForPlayerId(gameState, currentUserId)}
+            onKickPlayer={handleKickPlayer}
+            isHost={isHost}
           />
           {gameState && gameState.stage === "results" && gameState.summary && <GameSummary gameState={gameState} />}
           {/* Empty div to scroll into view */}
