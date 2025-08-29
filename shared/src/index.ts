@@ -7,6 +7,7 @@ export * from "./events/error";
 export * from "./events/events";
 
 export * from "./games/imposter.type.js";
+export * from "./games/imposter-blitz.type.js";
 
 export * from "./validators.js";
 export * from "./constants.js";

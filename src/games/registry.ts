@@ -1,8 +1,10 @@
 import type { GameConfig } from "./types";
 import { WordImposterConfig } from "./word-imposter/config";
+import { ImposterBlitzConfig } from "./imposter-blitz/config";
 
 export const GAME_REGISTRY: Record<string, GameConfig> = {
   imposter: WordImposterConfig,
+  "imposter-blitz": ImposterBlitzConfig,
   // 'codenames': CodenamesConfig,
 };
 
