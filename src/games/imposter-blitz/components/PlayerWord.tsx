@@ -1,12 +1,12 @@
-import { useState } from "react";
 import { cn } from "@app/utils";
+import { LocalStorage, useLocalStorage } from "@app/hooks";
 
 type Props = {
   word: string;
 };
 
 export function PlayerWord({ word }: Props) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useLocalStorage(new LocalStorage("$$visible_imposter_word$$", true));
 
   const handleToggleVisibility = () => {
     setIsVisible(!isVisible);

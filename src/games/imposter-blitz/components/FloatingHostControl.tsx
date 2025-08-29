@@ -12,7 +12,7 @@ export function FloatingHostControls({ onStartGame, onEndVoting, onNextRound }: 
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="absolute top-8 right-18 z-50 flex flex-col items-end">
+    <div className="absolute top-8 right-4 z-50 flex flex-col items-end">
       <button
         className={`rounded-full items-center transition-all duration-300 ${
           open ? " text-white rotate-180" : " hover:scale-110"
