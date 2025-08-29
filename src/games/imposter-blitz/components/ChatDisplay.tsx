@@ -5,7 +5,7 @@ interface Message {
   author: string;
   content: string;
   isSelf: boolean;
-  type: "join" | "vote" | "chat";
+  type: "join" | "vote" | "chat" | "turn";
 }
 
 type Props = {
@@ -24,7 +24,7 @@ export function ChatDisplay({ messages, stage, players, currentUserId, onVote, o
     <div className="flex-1 p-4 overflow-y-auto bg-gray-800 rounded-lg">
       <div className="space-y-4">
         {messages.map((msg, index) => {
-          if (["join", "vote"].includes(msg.type.toLowerCase())) {
+          if (["join", "vote", "turn"].includes(msg.type.toLowerCase())) {
             return (
               <div className="flex justify-center">
                 <div className="text-gray-400 text-sm italic bg-gray-700/50 px-3 py-1 rounded-full">{msg.content}</div>

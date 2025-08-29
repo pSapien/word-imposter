@@ -122,8 +122,6 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
       ? this.state.imposterWord
       : this.state.civilianWord;
 
-    /** client will never get the original turn order */
-    clientState.turnOrder = shuffle(clientState.turnOrder);
     return clientState;
   }
 
@@ -137,6 +135,7 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
 
     if (nextTurn === undefined) {
       this.state.stage = "voting";
+      this.state.turn = "";
     } else {
       this.state.turn = nextTurn;
     }
@@ -148,9 +147,11 @@ export class ImposterBlitzGameEngine implements GameEngine<ImposterBlitzGameStat
 
     this.state.votes[playerId] = action.payload?.voteeId || "";
     player.hasVoted = true;
+
+    if (this.state.players.every((p) => p.hasVoted)) this.handleEndVoting();
   }
 
-  private handleEndVoting(playerId: string, action: GameAction<any>) {
+  private handleEndVoting() {
     const eliminatedPlayers = getEliminatedPlayerByVotes(this.state.votes) as string[];
     const eliminatedPlayerId = eliminatedPlayers && eliminatedPlayers.length === 1 ? eliminatedPlayers[0] : null;
 

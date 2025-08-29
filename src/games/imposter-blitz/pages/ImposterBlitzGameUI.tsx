@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "react-hot-toast";
 import {
   ErrorCodes,
   type Room,
@@ -11,48 +10,11 @@ import {
 import { useSocket, useSocketHandler } from "@app/socket";
 import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
 import { useLocalStorage } from "@app/hooks";
-import {
-  ChatDisplay,
-  FloatingHostControls,
-  GameSummary,
-  MessageInput,
-  PlayerSelectionAnimation,
-  PlayerWord,
-} from "../components";
+import { ChatDisplay, FloatingHostControls, GameSummary, MessageInput, PlayerWord } from "../components";
 
 import { GameHeader } from "../../word-imposter/components/GameHeader.tsx";
 import { VotingProgress } from "../../word-imposter/components/VotingProgress.tsx";
-
-function gameStateToMessages(gameState: ImposterBlitzGameState, currentUserId: string) {
-  return gameState?.events
-    .map((ev) => {
-      if (ev.type === "submission") {
-        const subEvent = ev as ImposterBlitzSubmissionEvent;
-        const player = gameState.players.find((p) => p.id === subEvent.playerId);
-        return {
-          author: player?.displayName || "",
-          content: subEvent.content,
-          isSelf: subEvent.playerId === currentUserId,
-          type: "chat" as const,
-        };
-      } else if (ev.type === "vote") {
-        const voteEvent = ev as ImposterBlitzVoteEvent;
-        const voter = gameState.players.find((p) => p.id === voteEvent.voterId);
-        const votee = gameState.players.find((p) => p.id === voteEvent.voteeId);
-        const content =
-          voteEvent.voteeId === ""
-            ? `${voter?.displayName} skipped the vote`
-            : `${voter?.displayName} voted for ${votee?.displayName}`;
-        return {
-          author: "System",
-          content,
-          isSelf: false,
-          type: "vote" as const,
-        };
-      }
-    })
-    .filter(Boolean);
-}
+import notification from "./assets/notification.mp3";
 
 export default function ImposterBlitzGameUI() {
   const params = useParams<{ roomName: string }>();
@@ -63,49 +25,19 @@ export default function ImposterBlitzGameUI() {
 
   const [room, setRoom] = useState<Room | null>(null);
   const [gameState, setGameState] = useState<ImposterBlitzGameState | null>(null);
-  const [showAnimation, setShowAnimation] = useState(false);
-  const [showCountdown, setShowCountdown] = useState(false);
-  const [countdown, setCountdown] = useState(0);
-  const [systemMessages, setSystemMessages] = useState<{ author: string; content: string; isSelf: boolean }[]>([]);
 
   const me = gameState?.players.find((p) => p.id === currentUserId);
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
+  const isMyTurn = gameState?.turn === me?.id;
 
   useEffect(() => {
     scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [gameState]);
 
   useSocketHandler({
-    room_joined: (payload) => {
-      const systemMessages = payload.members.map((mem) => {
-        return {
-          author: "System",
-          content: `${mem.displayName} has joined the room.`,
-          isSelf: currentUserId === mem.id,
-          type: "join",
-        };
-      });
-
-      setSystemMessages(systemMessages);
-      setRoom(payload);
-    },
-
-    game_state: (payload) => {
-      const newGameState = payload.state as ImposterBlitzGameState;
-      if (
-        !gameState ||
-        (gameState?.turn !== newGameState.turn &&
-          newGameState.stage === "discussion" &&
-          newGameState?.turnOrder.length! > 1)
-      ) {
-        setCountdown(5);
-        setShowCountdown(true);
-      }
-      setGameState(newGameState);
-    },
-
+    room_joined: (payload) => setRoom(payload),
+    game_state: (payload) => setGameState(payload.state),
     error: (error) => {
-      toast.error(error.message);
       if (error.code === ErrorCodes.authSessionExpiry) navigate("/");
     },
   });
@@ -121,14 +53,11 @@ export default function ImposterBlitzGameUI() {
   }, [status, send, role]);
 
   useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (showCountdown) {
-      setShowCountdown(false);
-      setShowAnimation(true);
+    if (isMyTurn) {
+      const audio = new Audio(notification);
+      audio.play();
     }
-  }, [countdown, showCountdown]);
+  }, [isMyTurn]);
 
   const handleStartGame = () => {
     const gameSettings = ImposterGameSettingsStorage.get();
@@ -209,37 +138,31 @@ export default function ImposterBlitzGameUI() {
     });
   };
 
-  const getPlaceholder = () => {
-    if (!gameState || !me) return "";
-    if (me.status === "eliminated") return "You are eliminated";
-    if (showCountdown) return `Next player selects in ${countdown}s`;
-    if (gameState.turn !== me.id) return "Wait for your turn";
+  function getPlaceholder() {
+    const random = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
-    return "Enter your word...";
-  };
+    if (me?.status === "eliminated") {
+      const eliminatedEmojis = ["💀", "😢", "👻", "☠️"];
+      return `${random(eliminatedEmojis)} You are eliminated... So sad!`;
+    }
 
-  const messages = useMemo(() => {
-    if (!gameState) return systemMessages;
-    return [...systemMessages, ...gameStateToMessages(gameState, currentUserId)];
-  }, [systemMessages, gameState, currentUserId]);
+    if (gameState?.turn !== me?.id) {
+      const waitingEmojis = ["⏳", "🕒", "🙄", "⌛"];
+      const currentPlayer = gameState?.players.find((p) => p.id === gameState.turn);
+      return `${random(waitingEmojis)} ${currentPlayer?.displayName}'s turn...`;
+    }
 
+    const typingEmojis = ["✍️", "⌨️", "📝", "💡"];
+    return `${random(typingEmojis)} Enter your word...`;
+  }
+
+  const messages = transformMessages(gameState, room, currentUserId);
   const totalActivePlayers = gameState ? getTotalActivePlayers(gameState) : [];
-
   const voteCount = Number(gameState?.players.filter((player) => player.hasVoted).length);
-  const isMyTurn = gameState?.turn === me?.id;
 
   return (
     <>
       <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-        {showAnimation && gameState && (
-          <PlayerSelectionAnimation
-            players={gameState.players
-              .filter((p) => p.role !== "spectator" && p.status === "alive")
-              .filter((p) => gameState?.turnOrder.includes(p.id))}
-            selectedPlayerId={gameState?.turn}
-            onAnimationComplete={() => setShowAnimation(false)}
-          />
-        )}
         <GameHeader
           title="⚡️ Imposter Blitz"
           isCurrentUserHost={room?.hostId === currentUserId}
@@ -278,7 +201,6 @@ export default function ImposterBlitzGameUI() {
 
         <main className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-2">
           <ChatDisplay
-            // @ts-ignore: cannot possibly be undefined
             messages={messages}
             stage={gameState?.stage || "waiting"}
             players={gameState?.players || []}
@@ -296,14 +218,74 @@ export default function ImposterBlitzGameUI() {
             <MessageInput
               onSendMessage={handleSendMessage}
               placeholder={getPlaceholder()}
-              disabled={showCountdown || !isMyTurn || me?.status === "eliminated"}
-              isHighlighted={!Boolean(countdown) && isMyTurn}
+              disabled={!isMyTurn || me?.status === "eliminated"}
+              isHighlighted={isMyTurn}
             />
           </div>
         )}
       </div>
     </>
   );
+}
+
+function transformMessages(gameState: ImposterBlitzGameState | null, room: Room | null, currentUserId: string) {
+  if (!room) return [];
+
+  const joinEvents = room.members.map((mem) => {
+    return {
+      author: "System",
+      content: `${mem.displayName} has entered the room!`,
+      isSelf: currentUserId === mem.id,
+      type: "join" as const,
+    };
+  });
+
+  if (!gameState) return joinEvents;
+
+  const gameEvents = gameState?.events
+    .map((ev) => {
+      if (ev.type === "submission") {
+        const subEvent = ev as ImposterBlitzSubmissionEvent;
+        const player = gameState.players.find((p) => p.id === subEvent.playerId);
+        return {
+          author: player?.displayName || "",
+          content: `💬 ${subEvent.content}`,
+          isSelf: subEvent.playerId === currentUserId,
+          type: "chat" as const,
+        };
+      } else if (ev.type === "vote") {
+        const voteEvent = ev as ImposterBlitzVoteEvent;
+        const voter = gameState.players.find((p) => p.id === voteEvent.voterId);
+        const votee = gameState.players.find((p) => p.id === voteEvent.voteeId);
+
+        const content =
+          voteEvent.voteeId === ""
+            ? `${voter?.displayName} skipped their vote...`
+            : `${voter?.displayName} voted for ${votee?.displayName}!`;
+
+        return {
+          author: "System",
+          content,
+          isSelf: false,
+          type: "vote" as const,
+        };
+      }
+      return null;
+    })
+    .filter((p) => p !== null);
+
+  const playerTurns = gameState.turnOrder.map((turnOrder) => {
+    return gameState.players.find((p) => p.id === turnOrder)!;
+  });
+
+  const turnEvents = {
+    author: "System",
+    content: `🎲 ${playerTurns.map((p) => p.displayName).join(" → ")}`,
+    isSelf: false,
+    type: "turn" as const,
+  };
+
+  return [...joinEvents, ...gameEvents, turnEvents];
 }
 
 function getVotedFor(state: ImposterBlitzGameState, playerId: string) {
