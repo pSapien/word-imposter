@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ErrorCodes,
-  type Room,
-  type ImposterBlitzGameState,
-  ImposterBlitzSubmissionEvent,
-  ImposterBlitzVoteEvent,
-} from "../../../../shared";
+import { ErrorCodes, type Room, type ImposterBlitzGameState } from "../../../../shared";
 import { useSocket, useSocketHandler } from "@app/socket";
 import { ImposterGameSettingsStorage, RoleStorage } from "../../../context/profile.ts";
 import { useLocalStorage } from "@app/hooks";
@@ -16,11 +10,13 @@ import {
   GameSummary,
   MessageInput,
   PlayerWord,
+  transformStateToMessage,
   VotingProgress,
 } from "../components";
 
 import { GameHeader } from "../../word-imposter/components/GameHeader.tsx";
 import notification from "./assets/notification.mp3";
+import toast from "react-hot-toast";
 
 export default function ImposterBlitzGameUI() {
   const params = useParams<{ roomName: string }>();
@@ -78,6 +74,7 @@ export default function ImposterBlitzGameUI() {
 
   const handleSendMessage = (message: string) => {
     if (!gameState) return;
+    if (!isMyTurn) return toast.error("Please wait for you turn to submit!");
 
     handleWordSubmission(message);
   };
@@ -162,7 +159,7 @@ export default function ImposterBlitzGameUI() {
     return `${random(typingEmojis)} Enter your word...`;
   }
 
-  const messages = transformMessages(gameState, room, currentUserId);
+  const messages = transformStateToMessage(gameState, room, currentUserId);
   const totalActivePlayers = gameState ? getTotalActivePlayers(gameState) : [];
   const voteCount = Number(gameState?.players.filter((player) => player.hasVoted).length);
 
@@ -225,7 +222,7 @@ export default function ImposterBlitzGameUI() {
             <MessageInput
               onSendMessage={handleSendMessage}
               placeholder={getPlaceholder()}
-              disabled={!isMyTurn || me?.status === "eliminated"}
+              disabled={me?.status === "eliminated"}
               isHighlighted={isMyTurn}
             />
           </div>
@@ -233,68 +230,6 @@ export default function ImposterBlitzGameUI() {
       </div>
     </>
   );
-}
-
-function transformMessages(gameState: ImposterBlitzGameState | null, room: Room | null, currentUserId: string) {
-  if (!room) return [];
-
-  const joinEvents = room.members.map((mem) => {
-    return {
-      author: "System",
-      content: `${mem.displayName} has entered the room!`,
-      isSelf: currentUserId === mem.id,
-      type: "join" as const,
-    };
-  });
-
-  if (!gameState) return joinEvents;
-
-  const gameEvents = gameState?.events
-    .map((ev) => {
-      if (ev.type === "submission") {
-        const subEvent = ev as ImposterBlitzSubmissionEvent;
-        const player = gameState.players.find((p) => p.id === subEvent.playerId);
-        return {
-          author: player?.displayName || "",
-          content: subEvent.content,
-          isSelf: subEvent.playerId === currentUserId,
-          type: "chat" as const,
-        };
-      } else if (ev.type === "vote") {
-        const voteEvent = ev as ImposterBlitzVoteEvent;
-        const voter = gameState.players.find((p) => p.id === voteEvent.voterId);
-        const votee = gameState.players.find((p) => p.id === voteEvent.voteeId);
-
-        const content =
-          voteEvent.voteeId === ""
-            ? `${voter?.displayName} skipped`
-            : `${voter?.displayName} voted for ${votee?.displayName}!`;
-
-        return {
-          author: "System",
-          content,
-          isSelf: false,
-          type: "vote" as const,
-        };
-      }
-      return null;
-    })
-    .filter((p) => p !== null);
-
-  const playerTurns = gameState.turnOrder
-    .map((turnOrder) => gameState.players.find((p) => p.id === turnOrder))
-    .filter((p) => p !== undefined);
-
-  if (!playerTurns.length) return [...joinEvents, ...gameEvents];
-
-  const turnEvents = {
-    author: "System",
-    content: `🎲 ${playerTurns.map((p) => p.displayName).join(" → ")}`,
-    isSelf: false,
-    type: "turn" as const,
-  };
-
-  return [...joinEvents, ...gameEvents, turnEvents];
 }
 
 function getVotedFor(state: ImposterBlitzGameState, playerId: string) {
