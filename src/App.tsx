@@ -2,7 +2,7 @@ import { Routes, Route, HashRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { SocketProvider } from "./context/SocketContext";
 import { GameSelectionPage } from "./pages/GameSelectionPage";
-import { CodeWordsSetupPage } from "./games/codewords/pages/CodeWordsSetupPage";
+// import { CodeWordsSetupPage } from "./games/codewords/pages/CodeWordsSetupPage";
 import { WordImposterRoom, WordImposterGameUI } from "./games/word-imposter";
 import { Constants } from "./constants.ts";
 import { FloatingConsoleLogs, ModalProvider } from "@app/components";
@@ -26,7 +26,7 @@ export default function App() {
             <Route path="/game/imposter-blitz/room" element={<ImposterBlitzRoom />} />
             <Route path="/game/imposter-blitz/room/:roomName" element={<ImposterBlitzGameUI />} />
 
-            <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} />
+            {/* <Route path="/game/codewords/room" element={<CodeWordsSetupPage />} /> */}
           </Routes>
           <Toaster
             position="top-center"
