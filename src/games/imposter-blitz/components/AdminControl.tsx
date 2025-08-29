@@ -1,5 +1,4 @@
 import { UserX, Play, SkipForward, CheckCircle, AppWindowMacIcon } from "lucide-react";
-import type { ImposterBlitzGameState } from "../../../../shared";
 import { ModalContainer, useModal } from "@app/components";
 
 type Player = {
@@ -8,7 +7,6 @@ type Player = {
 };
 
 type Props = {
-  stage: ImposterBlitzGameState["stage"] | "waiting";
   players: Player[];
   currentUserId: string;
   onKickPlayer: (playerId: string) => void;
@@ -34,7 +32,6 @@ export function AdminControlIcon(props: Props) {
 }
 
 function AdminControl({
-  stage,
   players,
   currentUserId,
   onKickPlayer,

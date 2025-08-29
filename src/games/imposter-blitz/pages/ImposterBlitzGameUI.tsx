@@ -188,7 +188,6 @@ export default function ImposterBlitzGameUI() {
           {isHost && (
             <span className="absolute right-8">
               <AdminControlIcon
-                stage={gameState?.stage || "waiting"}
                 players={players}
                 currentUserId={currentUserId}
                 onKickPlayer={handleKickPlayer}
@@ -228,8 +227,6 @@ export default function ImposterBlitzGameUI() {
             onVote={handleVote}
             onSkipVote={handleSkipVote}
             votedForPlayerId={getVotedForPlayerId(gameState, currentUserId)}
-            onKickPlayer={handleKickPlayer}
-            isHost={isHost}
           />
           {gameState && gameState.stage === "results" && gameState.summary && <GameSummary gameState={gameState} />}
           {/* Empty div to scroll into view */}
