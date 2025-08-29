@@ -81,7 +81,8 @@ export class WebSocketManager<M extends Message> {
 
   cleanupStaleConnections(maxStaleMs: number): void {
     const now = Date.now();
-    Array.from(this.connectionsById.entries()).forEach(([id, connection]) => {
+
+    for (const [id, connection] of this.connectionsById) {
       if (now - connection.lastPing > maxStaleMs) {
         try {
           console.log(`Cleaning up stale connection for ${id}`);
@@ -91,7 +92,7 @@ export class WebSocketManager<M extends Message> {
         }
         this.removeConnection(id);
       }
-    });
+    }
   }
 
   getStats() {

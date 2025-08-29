@@ -192,7 +192,7 @@ export class RoomService {
   cleanupStaleRooms(maxInActiveMs: number): void {
     const now = Date.now();
 
-    this.rooms.forEach((room) => {
+    for (const [_, room] of this.rooms) {
       if (room.members.length === 0 || now - room.lastActiveAt > maxInActiveMs) {
         console.log(`Cleaning up inactive room for ${room.name}`);
         room.members.forEach((member) => {
@@ -202,7 +202,7 @@ export class RoomService {
         this.rooms.delete(room.roomId);
         this.roomCodes.delete(room.roomCode);
       }
-    });
+    }
   }
 
   private clearDisconnectionTimerIfExists(profileId: string) {

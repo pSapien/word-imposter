@@ -84,12 +84,12 @@ export class SessionService {
   cleanupInactiveSessions(maxInActiveMs: number): void {
     const now = Date.now();
 
-    this.sessions.forEach((session) => {
+    for (const [_, session] of this.sessions) {
       if (now - session.lastActiveAt > maxInActiveMs) {
         console.log(`Cleaning up inactive session for ${session.profile.displayName}`);
         this.removeSession(session.sessionId);
       }
-    });
+    }
   }
 
   getStats() {
