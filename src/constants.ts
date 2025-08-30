@@ -7,7 +7,7 @@ export const Constants = {
     GameSettings: "$$game_settings$$",
     Role: "$$role$$",
   },
-  Endpoint: "https://d4d564215d7e.ngrok-free.app",
+  Endpoint: "ws://10.10.100.200:3001",
   ShowDebugLogs: false,
   ToastShowDuration: 3000,
 

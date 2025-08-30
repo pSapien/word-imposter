@@ -13,6 +13,7 @@ import type {
 import { ErrorCodes, Validators, ApiError } from "@imposter/shared";
 import type { RoomService, WebSocketManager, SessionService, GameRoom, GameEngine } from "@server/core";
 import { WordImposterGameEngine, ImposterBlitzGameEngine } from "@server/games";
+import { compare, type Operation } from "fast-json-patch";
 
 type Services = {
   session: SessionService;
@@ -68,7 +69,7 @@ export class RoomHandlers {
       if (room.currentGame) {
         const member = room.members.find((m) => m.id === session.profile.id);
         if (!member) throw new Error("Members not found");
-        this.broadcastGameState(room.currentGame, room.members);
+        this.broadcastFullGameState(room.currentGame, room.members);
       }
     } catch (error: any) {
       this.wsManager.send(req.connectionId, {
@@ -156,7 +157,7 @@ export class RoomHandlers {
       this.services.room.setGame(room, game);
       game.startGame(room.members.slice());
 
-      this.broadcastGameState(room.currentGame!, room.members);
+      this.broadcastFullGameState(room.currentGame!, room.members);
     } catch (error: any) {
       this.wsManager.send(req.connectionId, {
         type: "error",
@@ -179,9 +180,24 @@ export class RoomHandlers {
 
       if (!room.currentGame) throw new Error("No Current Game");
 
+      const beforeStates = new Map<string, any>();
+      for (const member of room.members) {
+        beforeStates.set(member.id, room.currentGame.getPlayerViewState(member.id));
+      }
+
       room.currentGame.validateGameAction(session.profile.id, payload);
       room.currentGame.processAction(session.profile.id, payload);
-      this.broadcastGameState(room.currentGame!, room.members);
+
+      const patches: { memberId: string; patch: Operation[] }[] = [];
+      for (const member of room.members) {
+        const oldState = beforeStates.get(member.id);
+        const newState = room.currentGame.getPlayerViewState(member.id);
+        const patch = compare(oldState, newState);
+        if (patch.length > 0) {
+          patches.push({ memberId: member.id, patch });
+        }
+      }
+      this.broadcastGameStatePatch(patches);
     } catch (error: any) {
       this.wsManager.send(req.connectionId, {
         type: "error",
@@ -246,7 +262,7 @@ export class RoomHandlers {
     }
   }
 
-  private broadcastGameState(game: GameEngine<any>, members: RoomMember[]) {
+  private broadcastFullGameState(game: GameEngine<any>, members: RoomMember[]) {
     for (const member of members) {
       const sessionProfile = this.services.session.getSessionByProfileId(member.id);
       if (!sessionProfile) continue;
@@ -255,6 +271,20 @@ export class RoomHandlers {
         type: "game_state",
         payload: {
           state: game.getPlayerViewState(member.id),
+        },
+      });
+    }
+  }
+
+  private broadcastGameStatePatch(patches: { memberId: string; patch: Operation[] }[]) {
+    for (const { memberId, patch } of patches) {
+      const session = this.services.session.getSessionByProfileId(memberId);
+      if (!session) continue;
+
+      this.wsManager.send(session.connectionId, {
+        type: "game_state_patch",
+        payload: {
+          patch,
         },
       });
     }

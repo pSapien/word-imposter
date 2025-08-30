@@ -1,3 +1,5 @@
+import type { Operation } from "fast-json-patch";
+
 export interface StartGameRequest {
   type: "start_game";
   payload: {
@@ -20,5 +22,12 @@ export interface GameStateResponse<S extends {}> {
   type: "game_state";
   payload: {
     state: S;
+  };
+}
+
+export interface GameStatePatchEvent {
+  type: "game_state_patch";
+  payload: {
+    patch: Operation[];
   };
 }

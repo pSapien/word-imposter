@@ -1,3 +1,4 @@
+import { applyPatch, type Operation } from "fast-json-patch";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -44,6 +45,14 @@ export function WordImposterGameUI() {
     game_state: (payload) => {
       const newGameState = payload.state as WordImposterState;
       setGameState(newGameState);
+    },
+
+    game_state_patch: ({ patch }) => {
+      setGameState((prev) => {
+        if (!prev) return null;
+        const { newDocument } = applyPatch(prev, patch as Operation[], true, false);
+        return newDocument;
+      });
     },
 
     error: (error) => {
